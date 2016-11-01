@@ -14,8 +14,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package config
+package controllers
 
-trait MongoCollections {
-  final val SESSION_CACHE = "session-cache"
+import config.{Authorised, BackController, NotAuthorised}
+import play.api.mvc.Action
+import services.SessionService
+
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
+trait SessionCtrl extends BackController {
+
+  val sessionService : SessionService
+
+  def cache : Action[String] = Action.async(parse.text) {
+    implicit request =>
+      authOpenAction {
+        case Authorised =>
+          sessionService.cacheData(request.headers("sessionID"), request.body) map {
+            case true => InternalServerError
+            case false => Created
+          }
+        case NotAuthorised => Future.successful(Forbidden)
+      }
+  }
 }
