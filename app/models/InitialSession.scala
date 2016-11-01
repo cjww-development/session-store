@@ -13,9 +13,25 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package models
 
-package config
+import org.joda.time.{DateTime, DateTimeZone}
+import play.api.Logger
+import play.api.libs.json.Json
+import reactivemongo.bson.BSONDateTime
 
-trait MongoCollections {
-  final val SESSION_CACHE = "session-cache"
+case class InitialSession(_id : String,
+                          data : Map[String, String],
+                          modifiedDetails : Map[String, String])
+
+object InitialSession {
+  implicit val formatBsonTime = Json.format[BSONDateTime]
+  implicit val format = Json.format[InitialSession]
+
+  def getDateTime : String = {
+    val milliseconds = DateTime.now
+    val date = new DateTime(milliseconds.getMillis, DateTimeZone.UTC)
+    Logger.debug(s"[InitialSession] [getDateTime] - $date")
+    date.toString
+  }
 }

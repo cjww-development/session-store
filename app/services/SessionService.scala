@@ -13,9 +13,31 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package services
 
-package config
+import play.api.Logger
+import repositories.SessionRepository
 
-trait MongoCollections {
-  final val SESSION_CACHE = "session-cache"
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
+object SessionService extends SessionService {
+  val sessionRepo = SessionRepository
+}
+
+trait SessionService {
+
+  val sessionRepo : SessionRepository
+
+  def cacheData(sessionID : String, data : String) : Future[Boolean] = {
+    sessionRepo.cacheData(sessionID, data) map {
+      wr =>
+        if(wr.hasErrors) {
+          // $COVERAGE-OFF$
+          Logger.error(s"[SessionRepo] - [cacheData] : There was a problem caching the data - ${wr.errmsg}")
+          // $COVERAGE-ON$
+        }
+        wr.hasErrors
+    }
+  }
 }
