@@ -1,1 +1,1 @@
-web: target/universal/stage/bin/cjww-session-store -Dhttp.port=${PORT}
+web: target/universal/stage/bin/session-store -Dhttp.port=${PORT}
