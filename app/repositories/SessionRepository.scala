@@ -13,9 +13,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package repositories
 
-package config
+import config.MongoCollections
+import connectors.MongoConnector
+import models.InitialSession
+import reactivemongo.api.commands.WriteResult
 
-trait MongoCollections {
-  final val SESSION_CACHE = "session-cache"
+import scala.concurrent.Future
+
+object SessionRepository extends SessionRepository {
+  val mongoConnector = MongoConnector
+}
+
+trait SessionRepository extends MongoCollections {
+
+  val mongoConnector : MongoConnector
+
+  def cacheData(sessionID : String, data : String) : Future[WriteResult] = {
+    val now = InitialSession.getDateTime
+    val dataEntry = InitialSession(sessionID, Map("userInfo" -> data), Map("created" -> now, "lastModified" -> now))
+    mongoConnector.create[InitialSession](SESSION_CACHE, dataEntry)
+  }
 }
