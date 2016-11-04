@@ -40,4 +40,16 @@ trait SessionService {
         wr.hasErrors
     }
   }
+
+  def destroySessionRecord(sessionID : String) : Future[Boolean] = {
+    sessionRepo.removeSessionRecord(sessionID) map {
+      wr =>
+        if(wr.hasErrors) {
+          // $COVERAGE-OFF$
+          Logger.error(s"[SessionRepo] - [destroySessionRecord] : There was a problem deleting the session - ${wr.errmsg}")
+          // $COVERAGE-ON$
+        }
+        wr.hasErrors
+    }
+  }
 }

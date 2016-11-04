@@ -47,4 +47,16 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
       Await.result(result, 5.seconds) mustBe false
     }
   }
+
+  "destroySessionRecord" should {
+    "remove a session record" when {
+      "given a valid session id" in new Setup {
+        when(mockRepo.removeSessionRecord(Matchers.any()))
+          .thenReturn(Future.successful(successWrite))
+
+        val result = TestService.destroySessionRecord("sessionID")
+        Await.result(result, 5.seconds) mustBe false
+      }
+    }
+  }
 }

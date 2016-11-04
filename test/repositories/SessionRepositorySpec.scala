@@ -51,4 +51,16 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
       }
     }
   }
+
+  "removeSessionRecord" should {
+    "return a successful WriteResult" when {
+      "given a session id" in new Setup {
+        when(mockConnector.delete(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(successWrite))
+
+        val result = TestRepo.removeSessionRecord("sessionID")
+        Await.result(result, 5.seconds).hasErrors mustBe false
+      }
+    }
+  }
 }
