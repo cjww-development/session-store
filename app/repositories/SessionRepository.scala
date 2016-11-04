@@ -19,6 +19,7 @@ import config.MongoCollections
 import connectors.MongoConnector
 import models.InitialSession
 import reactivemongo.api.commands.WriteResult
+import reactivemongo.bson.BSONDocument
 
 import scala.concurrent.Future
 
@@ -34,5 +35,9 @@ trait SessionRepository extends MongoCollections {
     val now = InitialSession.getDateTime
     val dataEntry = InitialSession(sessionID, Map("userInfo" -> data), Map("created" -> now, "lastModified" -> now))
     mongoConnector.create[InitialSession](SESSION_CACHE, dataEntry)
+  }
+
+  def removeSessionRecord(sessionId : String) : Future[WriteResult] = {
+    mongoConnector.delete(SESSION_CACHE, BSONDocument("_id" -> sessionId))
   }
 }

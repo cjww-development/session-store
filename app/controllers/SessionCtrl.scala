@@ -38,4 +38,19 @@ trait SessionCtrl extends BackController {
         case NotAuthorised => Future.successful(Forbidden)
       }
   }
+
+  def destroy : Action[String] = Action.async(parse.text) {
+    implicit request =>
+      authOpenAction {
+        case Authorised =>
+          decryptRequest[String] {
+            sessionId =>
+              sessionService.destroySessionRecord(sessionId) map {
+                case true => InternalServerError
+                case false => Ok
+              }
+          }
+        case NotAuthorised => Future.successful(Forbidden)
+      }
+  }
 }
