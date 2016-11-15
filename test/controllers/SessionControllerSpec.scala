@@ -33,10 +33,16 @@ class SessionControllerSpec extends PlaySpec with OneAppPerSuite {
     val testController = new SessionController
   }
 
+  //TODO : test other result scenarios
   "SessionController" should {
     "return a forbidden" when {
       "calling cache without an appID" in new Setup {
         val result = testController.cache()(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
+        status(result.run()) mustBe FORBIDDEN
+      }
+
+      "calling getEntry" in new Setup {
+        val result = testController.getEntry()(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
         status(result.run()) mustBe FORBIDDEN
       }
 

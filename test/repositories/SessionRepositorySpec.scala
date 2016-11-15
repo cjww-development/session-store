@@ -34,6 +34,17 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
   val successWrite = mockWriteResult()
   val failedWrite = mockWriteResult(fails = true)
 
+  val testInitial = InitialSession(
+    "testID",
+    Map(
+      "testKey" -> "testData"
+    ),
+    Map(
+      "" -> "",
+      "" -> ""
+    )
+  )
+
   class Setup {
     object TestRepo extends SessionRepository {
       val mongoConnector = mockConnector
@@ -48,6 +59,28 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
 
         val result = TestRepo.cacheData("sessionID", "testData")
         Await.result(result, 5.seconds).hasErrors mustBe false
+      }
+    }
+  }
+
+  "getData" should {
+    "return an optional string" when {
+      "given a sessionID and a key" in new Setup {
+        when(mockConnector.read[InitialSession](Matchers.any(), Matchers.any())(Matchers.any()))
+          .thenReturn(Future.successful(Some(testInitial)))
+
+        val result = Await.result(TestRepo.getData("testID", "testKey"), 5.seconds)
+        result mustBe Some("testData")
+      }
+    }
+
+    "return None" when {
+      "given a sessionID and a key" in new Setup {
+        when(mockConnector.read[InitialSession](Matchers.any(), Matchers.any())(Matchers.any()))
+          .thenReturn(Future.successful(None))
+
+        val result = Await.result(TestRepo.getData("testID", "testKey"), 5.seconds)
+        result mustBe None
       }
     }
   }

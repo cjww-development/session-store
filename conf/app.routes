@@ -4,6 +4,8 @@
 
 POST    /cache                      controllers.SessionController.cache
 
+GET     /get-data-element           controllers.SessionController.getEntry
+
 GET     /destroy                    controllers.SessionController.destroy
 
 # Map static resources from the /public folder to the /assets URL path
