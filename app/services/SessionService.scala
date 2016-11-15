@@ -15,7 +15,9 @@
 // limitations under the License.
 package services
 
+import models.InitialSession
 import play.api.Logger
+import play.api.libs.json.{JsObject, JsValue, OFormat}
 import repositories.SessionRepository
 
 import scala.concurrent.Future
@@ -38,6 +40,18 @@ trait SessionService {
           // $COVERAGE-ON$
         }
         wr.hasErrors
+    }
+  }
+
+  def getByKey(sessionID : String, key : String)(implicit format : OFormat[InitialSession]) : Future[Option[String]] = {
+    sessionRepo.getData(sessionID, key) map {
+      data =>
+        if(data.isEmpty) {
+          // $COVERAGE-OFF$
+          Logger.error(s"[SessionRepo] - [getByKey] : data for this key could not be found")
+          // $COVERAGE-ON$
+        }
+        data
     }
   }
 

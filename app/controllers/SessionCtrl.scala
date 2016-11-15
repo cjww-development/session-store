@@ -17,6 +17,8 @@
 package controllers
 
 import config.{Authorised, BackController, NotAuthorised}
+import play.api.Logger
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
 import services.SessionService
 
@@ -34,6 +36,22 @@ trait SessionCtrl extends BackController {
           sessionService.cacheData(request.headers("sessionID"), request.body) map {
             case true => InternalServerError
             case false => Created
+          }
+        case NotAuthorised => Future.successful(Forbidden)
+      }
+  }
+
+  def getEntry : Action[String] = Action.async(parse.text) {
+    implicit request =>
+      authOpenAction {
+        case Authorised =>
+          decryptRequest[String] {
+            key =>
+              Logger.info(s"[SessionController] - [getEntry] key = $key")
+              sessionService.getByKey(request.headers("sessionID"), key) map {
+                case Some(data) => Ok(data)
+                case None => NotFound
+              }
           }
         case NotAuthorised => Future.successful(Forbidden)
       }

@@ -48,6 +48,16 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
     }
   }
 
+  "getByKey" should {
+    "return an optional string" in new Setup {
+      when(mockRepo.getData(Matchers.any(), Matchers.any())(Matchers.any()))
+        .thenReturn(Future.successful(Some("testData")))
+
+      val result = Await.result(TestService.getByKey("sessionID", "testKey"), 5.seconds)
+      result mustBe Some("testData")
+    }
+  }
+
   "destroySessionRecord" should {
     "remove a session record" when {
       "given a valid session id" in new Setup {
