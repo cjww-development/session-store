@@ -10,9 +10,8 @@ lazy val root = (project in file("."))
   .enablePlugins(PlayScala)
   .settings(playSettings ++ scoverageSettings : _*)
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.8"
 
-//PlayKeys.devSettings := Seq("play.server.http.port" -> "disabled")
 PlayKeys.devSettings := Seq("play.server.http.port" -> "8400")
 
 libraryDependencies ++= Seq(
