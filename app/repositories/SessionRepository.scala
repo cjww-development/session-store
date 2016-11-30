@@ -43,11 +43,8 @@ trait SessionRepository extends MongoCollections {
   def getData(sessionID : String, key : String)(implicit format: OFormat[InitialSession]) : Future[Option[String]] = {
     val selector = BSONDocument("_id" -> sessionID)
     mongoConnector.read[InitialSession](SESSION_CACHE, selector) map {
-      case Some(model) =>
-        Logger.debug(s"Data map = ${model.data}")
-        model.data.get(key)
-      case None =>
-        None
+      case Some(model) => model.data.get(key)
+      case None => None
     }
   }
 

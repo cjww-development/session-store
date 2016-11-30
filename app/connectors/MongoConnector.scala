@@ -17,6 +17,7 @@
 package connectors
 
 import config.{ConfigurationStrings, MongoConfiguration}
+import play.api.Logger
 import play.api.libs.json.OFormat
 import reactivemongo.api.{MongoConnection, MongoDriver}
 import reactivemongo.api.commands.{UpdateWriteResult, WriteResult}
@@ -46,25 +47,49 @@ trait MongoConnector extends MongoConfiguration {
 
   def create[T](collectionName : String, data : T)(implicit format : OFormat[T]) : Future[WriteResult] = {
     collection(collectionName) flatMap {
-      _.insert[T](data)
+      _.insert[T](data) map {
+        res =>
+          // $COVERAGE-OFF$
+          if(res.hasErrors) Logger.error(s"[MongoConnector] - [create] Inserting document of type ${data.getClass} FAILED reason : ${res.errmsg.get}")
+          // $COVERAGE-ON$
+          res
+      }
     }
   }
 
   def read[T](collectionName : String, query : BSONDocument)(implicit format : OFormat[T]) : Future[Option[T]] = {
     collection(collectionName).flatMap {
-      _.find(query).one[T]
+      _.find(query).one[T] map {
+        res =>
+          // $COVERAGE-OFF$
+          if(res.isEmpty) Logger.info(s"[MongoConnector] - [read] : Query returned no results")
+          // $COVERAGE-ON$
+          res
+      }
     }
   }
 
   def update[T](collectionName : String, selectedData : BSONDocument, data : T)(implicit format : OFormat[T]) : Future[UpdateWriteResult] = {
     collection(collectionName).flatMap {
-      _.update(selectedData, data)
+      _.update(selectedData, data) map {
+        res =>
+          // $COVERAGE-OFF$
+          if(res.hasErrors) Logger.error(s"[MongoConnector] - [update] Updating a document in $collectionName FAILED reason : ${res.errmsg.get}")
+          // $COVERAGE-ON$
+          res
+      }
     }
   }
 
   def delete[T](collectionName : String, query : BSONDocument) : Future[WriteResult] = {
     collection(collectionName).flatMap {
-      _.remove(query)
+      _.remove(query) map {
+        res =>
+          // $COVERAGE-OFF$
+          if(res.hasErrors) Logger.error(s"[MongoConnector] - [delete] Deleting a document from $collectionName FAILED reason : ${res.errmsg.get}")
+          // $COVERAGE-ON$
+          res
+      }
     }
   }
 }
