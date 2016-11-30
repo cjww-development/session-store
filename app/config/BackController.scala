@@ -39,11 +39,13 @@ trait BackController extends Controller with ConfigurationStrings {
 
   protected def decryptRequest[T](f: (T) => Future[Result])(implicit request: Request[String], manifest : Manifest[T], reads : Reads[T], format : Format[T]) = {
     Try(JsonSecurity.decryptInto[T](request.body)) match {
-      case Success(Some(data)) => f(data)
-      case Success(None) =>
-        Logger.debug(s"[BackController] [decryptRequest] Request body not found : ${request.body}")
+      case Success(Some(data)) =>
+        Logger.info("[BackController] - [decryptRequest] Request body decryption successful")
+        f(data)
+      case Success(None) => Future.successful(BadRequest)
+      case Failure(e) =>
+        Logger.error(s"[BackController] - [decryptRequest] Request body decryption FAILED - reason : ${e.getStackTrace}")
         Future.successful(BadRequest)
-      case Failure(e) => Future.successful(BadRequest)
     }
   }
 
@@ -54,7 +56,12 @@ trait BackController extends Controller with ConfigurationStrings {
   private def checkAuth(appID : Option[String]) : AuthorisationResponse = {
     appID match {
       case Some(id) => id match {
-        case AUTH_ID | DIAG_ID | DEV_ID => Authorised
+        case AUTH_ID => Logger.info("[BackController] - [checkAuth] : Session store call established, Welcome AUTH SERVICE")
+          Authorised
+        case DIAG_ID => Logger.info("[BackController] - [checkAuth] : Session store call established, Welcome DIAGNOSTICS FRONTEND")
+          Authorised
+        case DEV_ID => Logger.info("[BackController] - [checkAuth] : Session store call established, Welcome DEVERSITY FRONTEND")
+          Authorised
         case _ => NotAuthorised
       }
       case None => NotAuthorised

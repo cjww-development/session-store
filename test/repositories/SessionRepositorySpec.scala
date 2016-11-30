@@ -19,6 +19,7 @@ package repositories
 import connectors.MongoConnector
 import mocks.MongoMocks
 import models.InitialSession
+import org.joda.time.DateTime
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import org.mockito.Mockito._
@@ -40,8 +41,8 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
       "testKey" -> "testData"
     ),
     Map(
-      "" -> "",
-      "" -> ""
+      "" -> new DateTime(),
+      "" -> new DateTime()
     )
   )
 

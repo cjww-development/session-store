@@ -16,22 +16,29 @@
 package models
 
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.Logger
-import play.api.libs.json.Json
-import reactivemongo.bson.BSONDateTime
+import play.api.libs.json.{JsValue, Json, Reads, Writes, __}
 
 case class InitialSession(_id : String,
                           data : Map[String, String],
-                          modifiedDetails : Map[String, String])
+                          modifiedDetails : Map[String, DateTime])
 
 object InitialSession {
-  implicit val formatBsonTime = Json.format[BSONDateTime]
+  implicit val dateTimeRead: Reads[DateTime] =
+    (__ \ "$date").read[Long].map { dateTime =>
+      new DateTime(dateTime, DateTimeZone.UTC)
+    }
+
+  implicit val dateTimeWrite: Writes[DateTime] = new Writes[DateTime] {
+    def writes(dateTime: DateTime): JsValue = Json.obj(
+      "$date" -> dateTime.getMillis
+    )
+  }
+
   implicit val format = Json.format[InitialSession]
 
-  def getDateTime : String = {
+
+  def getDateTime : DateTime = {
     val milliseconds = DateTime.now
-    val date = new DateTime(milliseconds.getMillis, DateTimeZone.UTC)
-    Logger.debug(s"[InitialSession] [getDateTime] - $date")
-    date.toString
+    new DateTime(milliseconds.getMillis, DateTimeZone.UTC)
   }
 }
