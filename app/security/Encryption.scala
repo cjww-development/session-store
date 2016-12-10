@@ -14,20 +14,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package config
+package security
 
-import com.typesafe.config.ConfigFactory
-import security.Encryption
+import java.security.MessageDigest
 
-trait ConfigurationStrings {
-  final val config = ConfigFactory.load
+object Encryption extends Encryption
 
-  final val env = config.getString("cjww.environment")
+trait Encryption {
+  def sha512(plainpassword: String) : String = {
+    val sha512 = MessageDigest.getInstance("SHA-512")
+    val passbytes : Array[Byte] = plainpassword getBytes()
+    val passhash : Array[Byte] = sha512.digest(passbytes)
 
-  final val API_ID = Encryption.sha512(config.getString(s"$env.application-ids.rest-api"))
-  final val AUTH_ID = Encryption.sha512(config.getString(s"$env.application-ids.auth-service"))
-  final val DIAG_ID = Encryption.sha512(config.getString(s"$env.application-ids.diagnostics-frontend"))
-  final val DEV_ID = Encryption.sha512(config.getString(s"$env.application-ids.deversity-frontend"))
+    var result = ""
 
-  final val databaseUri = config.getString(s"$env.mongo.uri")
+    def loopArray(increment: Int) : String = {
+      if(increment >= passhash.length - 1) {
+        val b = passhash(increment)
+        result ++= "%02x".format(b).toString
+        result
+      } else {
+        val b = passhash(increment)
+        result ++= "%02x".format(b).toString
+        loopArray(increment + 1)
+      }
+    }
+    loopArray(0)
+  }
 }
