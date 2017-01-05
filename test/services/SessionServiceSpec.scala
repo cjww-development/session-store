@@ -16,6 +16,8 @@
 package services
 
 import mocks.MongoMocks
+import models.InitialSession
+import org.joda.time.DateTime
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import org.mockito.Mockito._
@@ -31,6 +33,19 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
 
   val successWrite = mockWriteResult()
   val failedWrite = mockWriteResult(fails = true)
+
+  val successUWR = mockUpdateWriteResult()
+
+  val testInitial = InitialSession(
+    "testID",
+    Map(
+      "testKey" -> "testData"
+    ),
+    Map(
+      "created" -> new DateTime(),
+      "lastModified" -> new DateTime()
+    )
+  )
 
   class Setup {
     object TestService extends SessionService {
@@ -55,6 +70,21 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
 
       val result = Await.result(TestService.getByKey("sessionID", "testKey"), 5.seconds)
       result mustBe Some("testData")
+    }
+  }
+
+  "updateDataKey" should {
+    "return an UpdateWriteResult" when {
+      "given a sessionID, a key and data" in new Setup {
+        when(mockRepo.getSession(Matchers.any())(Matchers.any()))
+          .thenReturn(Future.successful(Some(testInitial)))
+
+        when(mockRepo.updateSession(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+          .thenReturn(Future.successful(successUWR))
+
+        val result = Await.result(TestService.updateDataKey("testID","userInfo","testData"), 5.seconds)
+        result mustBe successUWR
+      }
     }
   }
 

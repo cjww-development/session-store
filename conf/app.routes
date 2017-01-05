@@ -4,6 +4,8 @@
 
 POST    /cache                      controllers.SessionController.cache
 
+POST    /update-session             controllers.SessionController.updateSession
+
 GET     /get-data-element           controllers.SessionController.getEntry
 
 GET     /destroy                    controllers.SessionController.destroy
