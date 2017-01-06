@@ -20,7 +20,7 @@ import connectors.MongoConnector
 import models.InitialSession
 import play.api.Logger
 import play.api.libs.json._
-import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.commands.{UpdateWriteResult, WriteResult}
 import reactivemongo.bson.BSONDocument
 
 import scala.concurrent.Future
@@ -46,6 +46,19 @@ trait SessionRepository extends MongoCollections {
       case Some(model) => model.data.get(key)
       case None => None
     }
+  }
+
+  def getSession(sessionID : String)(implicit format: OFormat[InitialSession]) : Future[Option[InitialSession]] = {
+    val selector = BSONDocument("_id" -> sessionID)
+    mongoConnector.read[InitialSession](SESSION_CACHE, selector)
+  }
+
+  def updateSession(sessionID : String, session : InitialSession, key : String, updateData : String)
+                   (implicit format: OFormat[InitialSession]) : Future[UpdateWriteResult] = {
+
+    val selector = BSONDocument("_id" -> sessionID)
+    val updated = session.copy(data = Map(key -> updateData), modifiedDetails = session.modifiedDetails. +("lastModified" -> InitialSession.getDateTime))
+    mongoConnector.update[InitialSession](SESSION_CACHE, selector, updated)
   }
 
   def removeSessionRecord(sessionId : String) : Future[WriteResult] = {

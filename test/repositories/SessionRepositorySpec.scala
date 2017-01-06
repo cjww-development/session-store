@@ -35,14 +35,16 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
   val successWrite = mockWriteResult()
   val failedWrite = mockWriteResult(fails = true)
 
+  val successUWR = mockUpdateWriteResult()
+
   val testInitial = InitialSession(
     "testID",
     Map(
       "testKey" -> "testData"
     ),
     Map(
-      "" -> new DateTime(),
-      "" -> new DateTime()
+      "created" -> new DateTime(),
+      "lastModified" -> new DateTime()
     )
   )
 
@@ -94,6 +96,30 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
 
         val result = TestRepo.removeSessionRecord("sessionID")
         Await.result(result, 5.seconds).hasErrors mustBe false
+      }
+    }
+  }
+
+  "getSession" should {
+    "return an optional initial session" when {
+      "given a sessionID" in new Setup {
+        when(mockConnector.read[InitialSession](Matchers.any(), Matchers.any())(Matchers.any()))
+          .thenReturn(Future.successful(None))
+
+        val result = Await.result(TestRepo.getSession("testID"), 5.seconds)
+        result mustBe None
+      }
+    }
+  }
+
+  "updateSession" should {
+    "amend a key" when {
+      "given a new set of data" in new Setup {
+        when(mockConnector.update[InitialSession](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+          .thenReturn(Future.successful(successUWR))
+
+        val result = Await.result(TestRepo.updateSession("",testInitial,"",""), 5.seconds)
+        result mustBe successUWR
       }
     }
   }

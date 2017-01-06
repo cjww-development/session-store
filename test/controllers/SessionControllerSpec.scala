@@ -46,6 +46,11 @@ class SessionControllerSpec extends PlaySpec with OneAppPerSuite {
         status(result.run()) mustBe FORBIDDEN
       }
 
+      "calling updateSession" in new Setup {
+        val result = testController.updateSession()(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
+        status(result.run()) mustBe FORBIDDEN
+      }
+
       "calling destroy without an appID" in new Setup {
         val result = testController.destroy()(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
         status(result.run()) mustBe FORBIDDEN

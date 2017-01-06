@@ -18,6 +18,7 @@ package services
 import models.InitialSession
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, OFormat}
+import reactivemongo.api.commands.UpdateWriteResult
 import repositories.SessionRepository
 
 import scala.concurrent.Future
@@ -52,6 +53,15 @@ trait SessionService {
           // $COVERAGE-ON$
         }
         data
+    }
+  }
+
+  def updateDataKey(sessionID : String, key : String, data : String)(implicit format : OFormat[InitialSession]) : Future[UpdateWriteResult] = {
+    for {
+      Some(session) <- sessionRepo.getSession(sessionID)
+      uwr <- sessionRepo.updateSession(sessionID, session, key, data)
+    } yield {
+      uwr
     }
   }
 

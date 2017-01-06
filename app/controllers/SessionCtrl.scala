@@ -17,6 +17,7 @@
 package controllers
 
 import config.{Authorised, BackController, NotAuthorised}
+import models.UpdateSet
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Action
@@ -51,6 +52,23 @@ trait SessionCtrl extends BackController {
               sessionService.getByKey(request.headers("sessionID"), key) map {
                 case Some(data) => Ok(data)
                 case None => NotFound
+              }
+          }
+        case NotAuthorised => Future.successful(Forbidden)
+      }
+  }
+
+  def updateSession() : Action[String] = Action.async(parse.text) {
+    implicit request =>
+      authOpenAction {
+        case Authorised =>
+          decryptRequest[UpdateSet] {
+            updateData =>
+              sessionService.updateDataKey(request.headers("sessionID"), updateData.key, updateData.data) map {
+                uwr => uwr.hasErrors match {
+                  case false => Ok
+                  case true => InternalServerError
+                }
               }
           }
         case NotAuthorised => Future.successful(Forbidden)
