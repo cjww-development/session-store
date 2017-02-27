@@ -1,32 +1,22 @@
 import scoverage.ScoverageKeys
+import com.typesafe.config.ConfigFactory
+import scala.util.{Try, Success, Failure}
+
+val btVersion: String = {
+  Try(ConfigFactory.load.getString("version")) match {
+    case Success(ver) => ver
+    case Failure(_) => "0.1.0"
+  }
+}
 
 name := """session-store"""
-
-version := "1.0-SNAPSHOT"
+version := btVersion
+scalaVersion := "2.11.8"
+organization := "com.cjww-dev.libs"
 
 lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
-lazy val root = (project in file("."))
-  .enablePlugins(PlayScala)
-  .settings(playSettings ++ scoverageSettings : _*)
-
-scalaVersion := "2.11.8"
-
-PlayKeys.devSettings := Seq("play.server.http.port" -> "8400")
-
-libraryDependencies ++= Seq(
-  jdbc,
-  cache,
-  ws,
-  "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % Test,
-  "org.mockito" % "mockito-core" % "1.8.5",
-  "org.reactivemongo" %% "reactivemongo" % "0.11.14",
-  "org.reactivemongo" %% "play2-reactivemongo" % "0.11.14"
-)
-
 lazy val scoverageSettings = {
-
-  // Semicolon-separated list of regexs matching classes to exclude
   Seq(
     ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;models/.data/..*;views.*;models.*;config.*;.*(AuthService|BuildInfo|Routes).*",
     ScoverageKeys.coverageMinimum := 80,
@@ -35,6 +25,27 @@ lazy val scoverageSettings = {
   )
 }
 
+lazy val root = (project in file("."))
+  .enablePlugins(PlayScala)
+  .settings(playSettings ++ scoverageSettings : _*)
+
+PlayKeys.devSettings := Seq("play.server.http.port" -> "8400")
+
+val cjwwDep: Seq[ModuleID] = Seq(
+  "com.cjww-dev.libs" % "data-security_2.11" % "0.3.0",
+  "com.cjww-dev.libs" % "logging_2.11" % "0.1.0",
+  "com.cjww-dev.libs" % "reactive-mongo_2.11" % "0.5.0"
+)
+
+val testDep: Seq[ModuleID] = Seq(
+  "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % Test,
+  "org.mockito" % "mockito-core" % "1.8.5" % Test
+)
+
+libraryDependencies ++= cjwwDep
+libraryDependencies ++= testDep
+
 resolvers += "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases"
+resolvers += "cjww-dev" at "http://dl.bintray.com/cjww-development/releases"
 
 herokuAppName in Compile := "cjww-session-store"

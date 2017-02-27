@@ -16,7 +16,7 @@
 
 package repositories
 
-import connectors.MongoConnector
+import com.cjwwdev.mongo.{MongoSuccessUpdate, _}
 import mocks.MongoMocks
 import models.InitialSession
 import org.joda.time.DateTime
@@ -49,19 +49,17 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
   )
 
   class Setup {
-    object TestRepo extends SessionRepository {
-      val mongoConnector = mockConnector
-    }
+    val testRepo = new SessionRepository(mockConnector)
   }
 
   "cacheData" should {
     "return a successful WriteResult" when {
       "given a session id and data" in new Setup {
-        when(mockConnector.create[InitialSession](Matchers.any(), Matchers.any())(Matchers.any()))
-          .thenReturn(Future.successful(successWrite))
+        when(mockConnector.create[InitialSession](Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(MongoSuccessCreate))
 
-        val result = TestRepo.cacheData("sessionID", "testData")
-        Await.result(result, 5.seconds).hasErrors mustBe false
+        val result = Await.result(testRepo.cacheData("sessionID", "testData"), 5.seconds)
+        result mustBe MongoSuccessCreate
       }
     }
   }
@@ -70,9 +68,9 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
     "return an optional string" when {
       "given a sessionID and a key" in new Setup {
         when(mockConnector.read[InitialSession](Matchers.any(), Matchers.any())(Matchers.any()))
-          .thenReturn(Future.successful(Some(testInitial)))
+          .thenReturn(Future.successful(MongoSuccessRead(testInitial)))
 
-        val result = Await.result(TestRepo.getData("testID", "testKey"), 5.seconds)
+        val result = Await.result(testRepo.getData("testID", "testKey"), 5.seconds)
         result mustBe Some("testData")
       }
     }
@@ -80,9 +78,9 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
     "return None" when {
       "given a sessionID and a key" in new Setup {
         when(mockConnector.read[InitialSession](Matchers.any(), Matchers.any())(Matchers.any()))
-          .thenReturn(Future.successful(None))
+          .thenReturn(Future.successful(MongoFailedRead))
 
-        val result = Await.result(TestRepo.getData("testID", "testKey"), 5.seconds)
+        val result = Await.result(testRepo.getData("testID", "testKey"), 5.seconds)
         result mustBe None
       }
     }
@@ -92,10 +90,10 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
     "return a successful WriteResult" when {
       "given a session id" in new Setup {
         when(mockConnector.delete(Matchers.any(), Matchers.any()))
-          .thenReturn(Future.successful(successWrite))
+          .thenReturn(Future.successful(MongoSuccessDelete))
 
-        val result = TestRepo.removeSessionRecord("sessionID")
-        Await.result(result, 5.seconds).hasErrors mustBe false
+        val result = Await.result(testRepo.removeSessionRecord("sessionID"), 5.seconds)
+        result mustBe MongoSuccessDelete
       }
     }
   }
@@ -104,9 +102,9 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
     "return an optional initial session" when {
       "given a sessionID" in new Setup {
         when(mockConnector.read[InitialSession](Matchers.any(), Matchers.any())(Matchers.any()))
-          .thenReturn(Future.successful(None))
+          .thenReturn(Future.successful(MongoFailedRead))
 
-        val result = Await.result(TestRepo.getSession("testID"), 5.seconds)
+        val result = Await.result(testRepo.getSession("testID"), 5.seconds)
         result mustBe None
       }
     }
@@ -115,11 +113,11 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
   "updateSession" should {
     "amend a key" when {
       "given a new set of data" in new Setup {
-        when(mockConnector.update[InitialSession](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
-          .thenReturn(Future.successful(successUWR))
+        when(mockConnector.update[InitialSession](Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any()))
+          .thenReturn(Future.successful(MongoSuccessUpdate))
 
-        val result = Await.result(TestRepo.updateSession("",testInitial,"",""), 5.seconds)
-        result mustBe successUWR
+        val result = Await.result(testRepo.updateSession("",testInitial,"",""), 5.seconds)
+        result mustBe MongoSuccessUpdate
       }
     }
   }

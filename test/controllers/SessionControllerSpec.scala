@@ -18,41 +18,45 @@ package controllers
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.api.libs.ws.ahc.AhcWSClient
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import services.SessionService
 
-class SessionControllerSpec extends PlaySpec with OneAppPerSuite {
+class SessionControllerSpec extends PlaySpec with OneAppPerSuite with MockitoSugar {
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
   val ws = AhcWSClient()
 
+  val mockSessionService = mock[SessionService]
+
   class Setup {
-    val testController = new SessionController
+    val testController = new SessionController(mockSessionService)
   }
 
   //TODO : test other result scenarios
   "SessionController" should {
     "return a forbidden" when {
       "calling cache without an appID" in new Setup {
-        val result = testController.cache()(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
+        val result = testController.cache("test-session-id")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
         status(result.run()) mustBe FORBIDDEN
       }
 
       "calling getEntry" in new Setup {
-        val result = testController.getEntry()(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
+        val result = testController.getEntry("test-session-id", "test-key")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
         status(result.run()) mustBe FORBIDDEN
       }
 
       "calling updateSession" in new Setup {
-        val result = testController.updateSession()(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
+        val result = testController.updateSession("test-session-id")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
         status(result.run()) mustBe FORBIDDEN
       }
 
       "calling destroy without an appID" in new Setup {
-        val result = testController.destroy()(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
+        val result = testController.destroy("test-session-id")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
         status(result.run()) mustBe FORBIDDEN
       }
     }

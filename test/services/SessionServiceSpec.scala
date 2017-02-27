@@ -15,6 +15,7 @@
 // limitations under the License.
 package services
 
+import com.cjwwdev.mongo.{MongoSuccessCreate, MongoSuccessDelete, MongoSuccessUpdate}
 import mocks.MongoMocks
 import models.InitialSession
 import org.joda.time.DateTime
@@ -48,18 +49,16 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
   )
 
   class Setup {
-    object TestService extends SessionService {
-      val sessionRepo = mockRepo
-    }
+    val testService = new SessionService(mockRepo)
   }
 
   "cacheData" should {
     "return false if data is successfully saved" in new Setup {
       when(mockRepo.cacheData(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(successWrite))
+        .thenReturn(Future.successful(MongoSuccessCreate))
 
-      val result = TestService.cacheData("sessionID", "testData")
-      Await.result(result, 5.seconds) mustBe false
+      val result = testService.cacheData("sessionID", "testData")
+      Await.result(result, 5.seconds) mustBe true
     }
   }
 
@@ -68,7 +67,7 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
       when(mockRepo.getData(Matchers.any(), Matchers.any())(Matchers.any()))
         .thenReturn(Future.successful(Some("testData")))
 
-      val result = Await.result(TestService.getByKey("sessionID", "testKey"), 5.seconds)
+      val result = Await.result(testService.getByKey("sessionID", "testKey"), 5.seconds)
       result mustBe Some("testData")
     }
   }
@@ -80,10 +79,10 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
           .thenReturn(Future.successful(Some(testInitial)))
 
         when(mockRepo.updateSession(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
-          .thenReturn(Future.successful(successUWR))
+          .thenReturn(Future.successful(MongoSuccessUpdate))
 
-        val result = Await.result(TestService.updateDataKey("testID","userInfo","testData"), 5.seconds)
-        result mustBe successUWR
+        val result = Await.result(testService.updateDataKey("testID","userInfo","testData"), 5.seconds)
+        result mustBe MongoSuccessUpdate
       }
     }
   }
@@ -92,10 +91,10 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
     "remove a session record" when {
       "given a valid session id" in new Setup {
         when(mockRepo.removeSessionRecord(Matchers.any()))
-          .thenReturn(Future.successful(successWrite))
+          .thenReturn(Future.successful(MongoSuccessDelete))
 
-        val result = TestService.destroySessionRecord("sessionID")
-        Await.result(result, 5.seconds) mustBe false
+        val result = testService.destroySessionRecord("sessionID")
+        Await.result(result, 5.seconds) mustBe true
       }
     }
   }

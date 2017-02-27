@@ -16,12 +16,16 @@
 
 package config
 
+import com.cjwwdev.mongo.MongoConnector
+import com.cjwwdev.security.encryption.DataSecurity
+import models.InitialSession
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{Controller, Request, Result}
-import security.JsonSecurity
+import repositories.SessionRepository
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
 sealed trait AuthorisationResponse
@@ -29,6 +33,9 @@ case object NotAuthorised extends AuthorisationResponse
 case object Authorised extends AuthorisationResponse
 
 trait BackController extends Controller with ConfigurationStrings {
+
+  val mongoConnector = new MongoConnector()
+  val sessionRepo = new SessionRepository(mongoConnector)
 
   protected def processJsonBody[T](f: (T) => Future[Result])(implicit request : JsValue, manifest : Manifest[T], reads : Reads[T]) =
     Try(request.validate[T]) match {
@@ -38,7 +45,7 @@ trait BackController extends Controller with ConfigurationStrings {
     }
 
   protected def decryptRequest[T](f: (T) => Future[Result])(implicit request: Request[String], manifest : Manifest[T], reads : Reads[T], format : Format[T]) = {
-    Try(JsonSecurity.decryptInto[T](request.body)) match {
+    Try(DataSecurity.decryptInto[T](request.body)) match {
       case Success(Some(data)) =>
         Logger.info("[BackController] - [decryptRequest] Request body decryption successful")
         f(data)
@@ -46,6 +53,13 @@ trait BackController extends Controller with ConfigurationStrings {
       case Failure(e) =>
         Logger.error(s"[BackController] - [decryptRequest] Request body decryption FAILED - reason : ${e.getStackTrace}")
         Future.successful(BadRequest)
+    }
+  }
+
+  protected def validateSession(id: String)(f: InitialSession => Future[Result])(implicit request: Request[String], format: OFormat[InitialSession]) = {
+    sessionRepo.getSession(id) flatMap {
+      case Some(session) => f(session)
+      case None => Future.successful(Forbidden)
     }
   }
 
