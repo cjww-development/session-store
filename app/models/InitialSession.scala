@@ -18,7 +18,7 @@ package models
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{JsValue, Json, Reads, Writes, __}
 
-case class InitialSession(_id : String,
+case class InitialSession(sessionId : String,
                           data : Map[String, String],
                           modifiedDetails : Map[String, DateTime])
 

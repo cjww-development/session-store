@@ -2,13 +2,7 @@
 # This file defines all application app.routes (Higher priority app.routes first)
 # ~~~~
 
-POST    /cache                      controllers.SessionController.cache
-
-POST    /update-session             controllers.SessionController.updateSession
-
-GET     /get-data-element           controllers.SessionController.getEntry
-
-GET     /destroy                    controllers.SessionController.destroy
-
-# Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+POST    /session/:sessionId/cache               controllers.SessionController.cache(sessionId: String)
+GET     /session/:sessionId/data/:key           controllers.SessionController.getEntry(sessionId: String, key: String)
+PUT     /session/:sessionId                     controllers.SessionController.updateSession(sessionId: String)
+DELETE  /session/:sessionId/destroy             controllers.SessionController.destroy(sessionId: String)

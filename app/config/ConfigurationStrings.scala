@@ -17,17 +17,17 @@
 package config
 
 import com.typesafe.config.ConfigFactory
-import security.Encryption
+import com.cjwwdev.security.encryption.SHA512
 
 trait ConfigurationStrings {
   final val config = ConfigFactory.load
 
   final val env = config.getString("cjww.environment")
 
-  final val API_ID = Encryption.sha512(config.getString(s"$env.application-ids.rest-api"))
-  final val AUTH_ID = Encryption.sha512(config.getString(s"$env.application-ids.auth-service"))
-  final val DIAG_ID = Encryption.sha512(config.getString(s"$env.application-ids.diagnostics-frontend"))
-  final val DEV_ID = Encryption.sha512(config.getString(s"$env.application-ids.deversity-frontend"))
+  final val API_ID  = SHA512.encrypt(config.getString(s"$env.application-ids.rest-api"))
+  final val AUTH_ID = config.getString(s"$env.application-ids.auth-service")
+  final val DIAG_ID = SHA512.encrypt(config.getString(s"$env.application-ids.diagnostics-frontend"))
+  final val DEV_ID  = SHA512.encrypt(config.getString(s"$env.application-ids.deversity-frontend"))
 
   final val databaseUri = config.getString(s"$env.mongo.uri")
 }
