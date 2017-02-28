@@ -35,6 +35,7 @@ class SessionService @Inject()(sessionRepo: SessionRepository) {
       case MongoFailedCreate  =>
         Logger.error(s"[SessionRepo] - [cacheData] : There was a problem caching the data")
         false
+      case _ => throw new IllegalStateException()
     }
   }
 
@@ -61,6 +62,7 @@ class SessionService @Inject()(sessionRepo: SessionRepository) {
       case MongoFailedDelete =>
         Logger.error(s"[SessionRepo] - [destroySessionRecord] : There was a problem deleting the session")
         false
+      case _ => throw new IllegalStateException()
     }
   }
 }

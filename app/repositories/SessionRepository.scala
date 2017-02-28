@@ -43,6 +43,7 @@ class SessionRepository @Inject()(injMongoConnector: MongoConnector) extends Mon
     injMongoConnector.read[InitialSession](SESSION_CACHE, selector) map {
       case MongoSuccessRead(model) => model.asInstanceOf[InitialSession].data.get(key)
       case MongoFailedRead => None
+      case _ => throw new IllegalStateException()
     }
   }
 
@@ -51,6 +52,7 @@ class SessionRepository @Inject()(injMongoConnector: MongoConnector) extends Mon
     injMongoConnector.read[InitialSession](SESSION_CACHE, selector) map {
       case MongoSuccessRead(model) => Some(model.asInstanceOf[InitialSession])
       case MongoFailedRead => None
+      case _ => throw new IllegalStateException()
     }
   }
 

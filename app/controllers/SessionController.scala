@@ -66,7 +66,7 @@ class SessionController @Inject()(sessionService: SessionService) extends BackCo
             decryptRequest[UpdateSet] { updateData =>
               sessionService.updateDataKey(session.sessionId, updateData.key, updateData.data) map {
                 case MongoSuccessUpdate => Ok
-                case MongoFailedUpdate => InternalServerError
+                case _ => InternalServerError
               }
             }
           }
