@@ -18,6 +18,7 @@ package controllers
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import com.cjwwdev.auth.connectors.AuthConnector
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.api.libs.ws.ahc.AhcWSClient
@@ -32,9 +33,10 @@ class SessionControllerSpec extends PlaySpec with OneAppPerSuite with MockitoSug
   val ws = AhcWSClient()
 
   val mockSessionService = mock[SessionService]
+  val mockAuthConnector = mock[AuthConnector]
 
   class Setup {
-    val testController = new SessionController(mockSessionService)
+    val testController = new SessionController(mockSessionService, mockAuthConnector)
   }
 
   //TODO : test other result scenarios

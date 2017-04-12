@@ -23,7 +23,7 @@ import org.joda.time.DateTime
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import org.mockito.Mockito._
-import org.mockito.Matchers
+import org.mockito.{ArgumentMatchers => Matchers}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -55,7 +55,7 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
   "cacheData" should {
     "return a successful WriteResult" when {
       "given a session id and data" in new Setup {
-        when(mockConnector.create[InitialSession](Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockConnector.create[InitialSession](Matchers.any(), Matchers.any())(Matchers.any()))
           .thenReturn(Future.successful(MongoSuccessCreate))
 
         val result = Await.result(testRepo.cacheData("sessionID", "testData"), 5.seconds)
@@ -102,6 +102,16 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
     "return an optional initial session" when {
       "given a sessionID" in new Setup {
         when(mockConnector.read[InitialSession](Matchers.any(), Matchers.any())(Matchers.any()))
+          .thenReturn(Future.successful(MongoSuccessRead(testInitial)))
+
+        val result = Await.result(testRepo.getSession("testID"), 5.seconds)
+        result mustBe Some(testInitial)
+      }
+    }
+
+    "return None" when {
+      "given a sessionID" in new Setup {
+        when(mockConnector.read[InitialSession](Matchers.any(), Matchers.any())(Matchers.any()))
           .thenReturn(Future.successful(MongoFailedRead))
 
         val result = Await.result(testRepo.getSession("testID"), 5.seconds)
@@ -113,7 +123,7 @@ class SessionRepositorySpec extends PlaySpec with OneAppPerSuite with MockitoSug
   "updateSession" should {
     "amend a key" when {
       "given a new set of data" in new Setup {
-        when(mockConnector.update[InitialSession](Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any()))
+        when(mockConnector.update[InitialSession](Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any()))
           .thenReturn(Future.successful(MongoSuccessUpdate))
 
         val result = Await.result(testRepo.updateSession("",testInitial,"",""), 5.seconds)

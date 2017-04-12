@@ -17,57 +17,50 @@ package repositories
 
 import javax.inject.{Inject, Singleton}
 
-import config.MongoCollections
-import com.cjwwdev.mongo._
+import com.cjwwdev.mongo.{MongoConnector, MongoCreateResponse, MongoDeleteResponse, MongoFailedRead, MongoSuccessRead, MongoUpdatedResponse}
+import config.ApplicationConfiguration
 import models.InitialSession
 import play.api.libs.json._
-import reactivemongo.api.indexes.IndexType
 import reactivemongo.bson.BSONDocument
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
-class SessionRepository @Inject()(injMongoConnector: MongoConnector) extends MongoCollections with MongoRepository {
-
-  implicit val indexes = ensureIndex("sessionId", "sessionId", IndexType.Text)
-
-  def cacheData(sessionID : String, data : String) : Future[MongoResponse] = {
+class SessionRepository @Inject()(mongoConnector: MongoConnector) extends ApplicationConfiguration  {
+  def cacheData(sessionID : String, data : String) : Future[MongoCreateResponse] = {
     val now = InitialSession.getDateTime
     val dataEntry = InitialSession(sessionID, Map("userInfo" -> data), Map("created" -> now, "lastModified" -> now))
-    injMongoConnector.create[InitialSession](SESSION_CACHE, dataEntry)
+    mongoConnector.create[InitialSession](SESSION_CACHE, dataEntry)
   }
 
   def getData(sessionID : String, key : String)(implicit format: OFormat[InitialSession]) : Future[Option[String]] = {
     val selector = BSONDocument("sessionId" -> sessionID)
-    injMongoConnector.read[InitialSession](SESSION_CACHE, selector) map {
+    mongoConnector.read[InitialSession](SESSION_CACHE, selector) map {
       case MongoSuccessRead(model) => model.asInstanceOf[InitialSession].data.get(key)
       case MongoFailedRead => None
-      case _ => throw new IllegalStateException()
     }
   }
 
   def getSession(sessionID : String)(implicit format: OFormat[InitialSession]) : Future[Option[InitialSession]] = {
     val selector = BSONDocument("sessionId" -> sessionID)
-    injMongoConnector.read[InitialSession](SESSION_CACHE, selector) map {
+    mongoConnector.read[InitialSession](SESSION_CACHE, selector) map {
       case MongoSuccessRead(model) => Some(model.asInstanceOf[InitialSession])
       case MongoFailedRead => None
-      case _ => throw new IllegalStateException()
     }
   }
 
   def updateSession(sessionID : String, session : InitialSession, key : String, updateData : String)
-                   (implicit format: OFormat[InitialSession]) : Future[MongoResponse] = {
+                   (implicit format: OFormat[InitialSession]) : Future[MongoUpdatedResponse] = {
     val selector = BSONDocument("sessionId" -> sessionID)
-    val updated =
-      session.copy(
-        data = session.data + (key -> updateData),
-        modifiedDetails = session.modifiedDetails. +("lastModified" -> InitialSession.getDateTime)
-      )
-    injMongoConnector.update(SESSION_CACHE, selector, updated)
+    val updated = session.copy(
+      data = session.data + (key -> updateData),
+      modifiedDetails = session.modifiedDetails. +("lastModified" -> InitialSession.getDateTime)
+    )
+    mongoConnector.update(SESSION_CACHE, selector, updated)
   }
 
-  def removeSessionRecord(sessionId : String) : Future[MongoResponse] = {
-    injMongoConnector.delete(SESSION_CACHE, BSONDocument("sessionId" -> sessionId))
+  def removeSessionRecord(sessionId : String) : Future[MongoDeleteResponse] = {
+    mongoConnector.delete(SESSION_CACHE, BSONDocument("sessionId" -> sessionId))
   }
 }

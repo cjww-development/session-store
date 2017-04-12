@@ -22,7 +22,7 @@ import org.joda.time.DateTime
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import org.mockito.Mockito._
-import org.mockito.Matchers
+import org.mockito.{ArgumentMatchers => Matchers}
 import repositories.SessionRepository
 
 import scala.concurrent.{Await, Future}

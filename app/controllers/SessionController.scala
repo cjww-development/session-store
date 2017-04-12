@@ -18,8 +18,10 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 
-import com.cjwwdev.mongo.{MongoFailedUpdate, MongoSuccessUpdate}
-import config.{Authorised, BackController, NotAuthorised}
+import com.cjwwdev.auth.actions.{Authorised, BaseAuth, NotAuthorised}
+import com.cjwwdev.auth.connectors.AuthConnector
+import com.cjwwdev.mongo.MongoSuccessUpdate
+import config.BackController
 import models.UpdateSet
 import com.cjwwdev.logging.Logger
 import play.api.mvc.Action
@@ -29,11 +31,13 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
-class SessionController @Inject()(sessionService: SessionService) extends BackController {
+class SessionController @Inject()(sessionService: SessionService, authConnect: AuthConnector) extends BackController with BaseAuth {
+
+  val authConnector = authConnect
 
   def cache(sessionId: String) : Action[String] = Action.async(parse.text) {
     implicit request =>
-      authOpenAction {
+      openActionVerification {
         case Authorised =>
           sessionService.cacheData(sessionId, request.body) map {
             case true => Created
@@ -45,7 +49,7 @@ class SessionController @Inject()(sessionService: SessionService) extends BackCo
 
   def getEntry(sessionId: String, key: String) : Action[String] = Action.async(parse.text) {
     implicit request =>
-      authOpenAction {
+      openActionVerification {
         case Authorised =>
           validateSession(sessionId) { session =>
             Logger.info(s"[SessionController] - [getEntry] key = $key")
@@ -60,7 +64,7 @@ class SessionController @Inject()(sessionService: SessionService) extends BackCo
 
   def updateSession(sessionId: String) : Action[String] = Action.async(parse.text) {
     implicit request =>
-      authOpenAction {
+      openActionVerification {
         case Authorised =>
           validateSession(sessionId) { session =>
             decryptRequest[UpdateSet] { updateData =>
@@ -76,7 +80,7 @@ class SessionController @Inject()(sessionService: SessionService) extends BackCo
 
   def destroy(sessionId: String) : Action[String] = Action.async(parse.text) {
     implicit request =>
-      authOpenAction {
+      openActionVerification {
         case Authorised =>
           validateSession(sessionId) { session =>
             sessionService.destroySessionRecord(session.sessionId) map {

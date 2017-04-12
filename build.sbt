@@ -11,8 +11,8 @@ val btVersion: String = {
 
 name := """session-store"""
 version := btVersion
-scalaVersion := "2.11.8"
-organization := "com.cjww-dev.libs"
+scalaVersion := "2.11.10"
+organization := "com.cjww-dev.apps"
 
 lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
@@ -32,14 +32,16 @@ lazy val root = (project in file("."))
 PlayKeys.devSettings := Seq("play.server.http.port" -> "8400")
 
 val cjwwDep: Seq[ModuleID] = Seq(
-  "com.cjww-dev.libs" % "data-security_2.11" % "0.3.0",
-  "com.cjww-dev.libs" % "logging_2.11" % "0.1.0",
-  "com.cjww-dev.libs" % "reactive-mongo_2.11" % "0.5.0"
+  "com.cjww-dev.libs" % "data-security_2.11" % "0.6.0",
+  "com.cjww-dev.libs" % "logging_2.11" % "0.2.0",
+  "com.cjww-dev.libs" % "reactive-mongo_2.11" % "0.7.0",
+  "com.cjww-dev.libs" % "bootstrapper_2.11" % "0.6.0",
+  "com.cjww-dev.libs" % "backend-auth_2.11" % "0.4.0"
 )
 
 val testDep: Seq[ModuleID] = Seq(
-  "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % Test,
-  "org.mockito" % "mockito-core" % "1.8.5" % Test
+  "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % Test,
+  "org.mockito" % "mockito-core" % "2.7.22" % Test
 )
 
 libraryDependencies ++= cjwwDep

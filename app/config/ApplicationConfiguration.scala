@@ -16,6 +16,9 @@
 
 package config
 
-trait MongoCollections {
+import com.cjwwdev.bootstrap.config.BaseConfiguration
+
+trait ApplicationConfiguration extends BaseConfiguration {
+  val databaseUri = config.getString("mongo.uri")
   val SESSION_CACHE = "session-cache"
 }

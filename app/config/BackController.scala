@@ -16,10 +16,10 @@
 
 package config
 
+import com.cjwwdev.logging.Logger
 import com.cjwwdev.mongo.MongoConnector
 import com.cjwwdev.security.encryption.DataSecurity
 import models.InitialSession
-import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{Controller, Request, Result}
 import repositories.SessionRepository
@@ -28,11 +28,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
-sealed trait AuthorisationResponse
-case object NotAuthorised extends AuthorisationResponse
-case object Authorised extends AuthorisationResponse
-
-trait BackController extends Controller with ConfigurationStrings {
+trait BackController extends Controller {
 
   val mongoConnector = new MongoConnector()
   val sessionRepo = new SessionRepository(mongoConnector)
@@ -59,26 +55,9 @@ trait BackController extends Controller with ConfigurationStrings {
   protected def validateSession(id: String)(f: InitialSession => Future[Result])(implicit request: Request[String], format: OFormat[InitialSession]) = {
     sessionRepo.getSession(id) flatMap {
       case Some(session) => f(session)
-      case None => Future.successful(Forbidden)
-    }
-  }
-
-  protected def authOpenAction(f: (AuthorisationResponse) => Future[Result])(implicit request: Request[_]) = {
-    f(checkAuth(request.headers.get("appID")))
-  }
-
-  private def checkAuth(appID : Option[String]) : AuthorisationResponse = {
-    appID match {
-      case Some(id) => id match {
-        case AUTH_ID => Logger.info("[BackController] - [checkAuth] : Session store call established, Welcome AUTH SERVICE")
-          Authorised
-        case DIAG_ID => Logger.info("[BackController] - [checkAuth] : Session store call established, Welcome DIAGNOSTICS FRONTEND")
-          Authorised
-        case DEV_ID => Logger.info("[BackController] - [checkAuth] : Session store call established, Welcome DEVERSITY FRONTEND")
-          Authorised
-        case _ => NotAuthorised
-      }
-      case None => NotAuthorised
+      case None =>
+        Logger.warn("[BackController] - [validateSession]: Session is invalid, action forbidden")
+        Future.successful(Forbidden)
     }
   }
 }
