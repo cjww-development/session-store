@@ -51,3 +51,8 @@ resolvers += "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases"
 resolvers += "cjww-dev" at "http://dl.bintray.com/cjww-development/releases"
 
 herokuAppName in Compile := "cjww-session-store"
+
+bintrayOrganization := Some("cjww-development")
+bintrayReleaseOnPublish in ThisBuild := false
+bintrayRepository := "releases"
+bintrayOmitLicense := true
