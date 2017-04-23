@@ -20,7 +20,7 @@ import com.cjwwdev.mongo.{MongoSuccessUpdate, _}
 import mocks.MongoMocks
 import models.InitialSession
 import org.joda.time.DateTime
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import org.mockito.Mockito._
 import org.mockito.{ArgumentMatchers => Matchers}
