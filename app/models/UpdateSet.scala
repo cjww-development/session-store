@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2012 the original author or authors.
+// Copyright (C) 2016-2017 the original author or authors.
 // See the LICENCE.txt file distributed with this work for additional
 // information regarding copyright ownership.
 //
@@ -13,6 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package models
 
 import play.api.libs.json.Json
