@@ -17,13 +17,13 @@
 package models
 
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json.{JsValue, Json, Reads, Writes, __}
+import play.api.libs.json._
 
-case class InitialSession(sessionId : String,
-                          data : Map[String, String],
-                          modifiedDetails : Map[String, DateTime])
+case class Session(sessionId : String,
+                   data : Map[String, String],
+                   modifiedDetails : Map[String, DateTime])
 
-object InitialSession {
+object Session {
   implicit val dateTimeRead: Reads[DateTime] =
     (__ \ "$date").read[Long].map { dateTime =>
       new DateTime(dateTime, DateTimeZone.UTC)
@@ -35,11 +35,9 @@ object InitialSession {
     )
   }
 
-  implicit val format = Json.format[InitialSession]
-
+  implicit val format: OFormat[Session] = Json.format[Session]
 
   def getDateTime : DateTime = {
-    val milliseconds = DateTime.now
-    new DateTime(milliseconds.getMillis, DateTimeZone.UTC)
+    new DateTime(DateTime.now.getMillis, DateTimeZone.UTC)
   }
 }

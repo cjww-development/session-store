@@ -16,9 +16,13 @@
 
 package config
 
-import com.cjwwdev.bootstrap.config.BaseConfiguration
+import scala.util.control.NoStackTrace
 
-trait ApplicationConfiguration extends BaseConfiguration {
-  val databaseUri = config.getString("mongo.uri")
-  val SESSION_CACHE = "session-cache"
+object Exceptions {
+  class MongoFailedCreateException(msg: String) extends NoStackTrace
+  class MongoFailedUpdateException(msg: String) extends NoStackTrace
+  class MongoFailedDeleteException(msg: String) extends NoStackTrace
+
+  class SessionKeyNotFoundException(msg: String) extends NoStackTrace
+  class MissingSessionException(msg: String) extends NoStackTrace
 }

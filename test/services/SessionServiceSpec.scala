@@ -15,14 +15,15 @@
 // limitations under the License.
 package services
 
-import com.cjwwdev.mongo._
+import com.cjwwdev.reactivemongo._
+import config.Exceptions.SessionKeyNotFoundException
 import mocks.MongoMocks
-import models.InitialSession
+import models.{Session, UpdateSet}
 import org.joda.time.DateTime
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import org.mockito.Mockito._
-import org.mockito.{ArgumentMatchers => Matchers}
+import org.mockito.ArgumentMatchers
 import repositories.SessionRepository
 
 import scala.concurrent.{Await, Future}
@@ -32,7 +33,7 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
 
   val mockRepo = mock[SessionRepository]
 
-  val testInitial = InitialSession(
+  val testInitial = Session(
     "testID",
     Map(
       "testKey" -> "testData"
@@ -43,13 +44,15 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
     )
   )
 
+  val testUpdateSet = UpdateSet("userInfo","testData")
+
   class Setup {
     val testService = new SessionService(mockRepo)
   }
 
   "cacheData" should {
     "return true if data is successfully saved" in new Setup {
-      when(mockRepo.cacheData(Matchers.any(), Matchers.any()))
+      when(mockRepo.cacheData(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(MongoSuccessCreate))
 
       val result = testService.cacheData("sessionID", "testData")
@@ -57,7 +60,7 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
     }
 
     "return false if there was a problem saving" in new Setup {
-      when(mockRepo.cacheData(Matchers.any(), Matchers.any()))
+      when(mockRepo.cacheData(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(MongoFailedCreate))
 
       val result = testService.cacheData("sessionID", "testData")
@@ -67,16 +70,16 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
 
   "getByKey" should {
     "return an optional string" in new Setup {
-      when(mockRepo.getData(Matchers.any(), Matchers.any())(Matchers.any()))
-        .thenReturn(Future.successful(Some("testData")))
+      when(mockRepo.getData(ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
+        .thenReturn(Future.successful("testData"))
 
       val result = Await.result(testService.getByKey("sessionID", "testKey"), 5.seconds)
       result mustBe Some("testData")
     }
 
     "return none" in new Setup {
-      when(mockRepo.getData(Matchers.any(), Matchers.any())(Matchers.any()))
-        .thenReturn(Future.successful(None))
+      when(mockRepo.getData(ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
+        .thenReturn(Future.failed(new SessionKeyNotFoundException("")))
 
       val result = Await.result(testService.getByKey("sessionID", "testKey"), 5.seconds)
       result mustBe None
@@ -86,13 +89,10 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
   "updateDataKey" should {
     "return an UpdateWriteResult" when {
       "given a sessionID, a key and data" in new Setup {
-        when(mockRepo.getSession(Matchers.any())(Matchers.any()))
-          .thenReturn(Future.successful(Some(testInitial)))
-
-        when(mockRepo.updateSession(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any()))
+        when(mockRepo.updateSession(ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
           .thenReturn(Future.successful(MongoSuccessUpdate))
 
-        val result = Await.result(testService.updateDataKey("testID","userInfo","testData"), 5.seconds)
+        val result = Await.result(testService.updateDataKey("testID", testUpdateSet), 5.seconds)
         result mustBe MongoSuccessUpdate
       }
     }
@@ -101,7 +101,7 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
   "destroySessionRecord" should {
     "remove a session record" when {
       "given a valid session id" in new Setup {
-        when(mockRepo.removeSessionRecord(Matchers.any()))
+        when(mockRepo.removeSession(ArgumentMatchers.any()))
           .thenReturn(Future.successful(MongoSuccessDelete))
 
         val result = testService.destroySessionRecord("sessionID")
@@ -111,7 +111,7 @@ class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar 
 
     "return a MongoFailedDelete" when {
       "there was a problem deleting the session record" in new Setup {
-        when(mockRepo.removeSessionRecord(Matchers.any()))
+        when(mockRepo.removeSession(ArgumentMatchers.any()))
           .thenReturn(Future.successful(MongoFailedDelete))
 
         val result = testService.destroySessionRecord("sessionID")

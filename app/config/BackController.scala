@@ -17,9 +17,9 @@
 package config
 
 import com.cjwwdev.logging.Logger
-import com.cjwwdev.mongo.MongoConnector
+import com.cjwwdev.reactivemongo.MongoConnector
 import com.cjwwdev.security.encryption.DataSecurity
-import models.InitialSession
+import models.Session
 import play.api.libs.json._
 import play.api.mvc.{Controller, Request, Result}
 import repositories.SessionRepository
@@ -30,17 +30,18 @@ import scala.util.{Failure, Success, Try}
 
 trait BackController extends Controller {
 
-  val mongoConnector = new MongoConnector()
+  val mongoConnector = new MongoConnector
   val sessionRepo = new SessionRepository(mongoConnector)
 
-  protected def processJsonBody[T](f: (T) => Future[Result])(implicit request : JsValue, manifest : Manifest[T], reads : Reads[T]) =
+  protected def processJsonBody[T](f: (T) => Future[Result])(implicit request : JsValue, manifest : Manifest[T], reads : Reads[T]): Future[Result] =
     Try(request.validate[T]) match {
       case Success(JsSuccess(data, _)) => f(data)
       case Success(JsError(errs)) => Future.successful(BadRequest)
       case Failure(e) => Future.successful(BadRequest)
     }
 
-  protected def decryptRequest[T](f: (T) => Future[Result])(implicit request: Request[String], manifest : Manifest[T], reads : Reads[T], format : Format[T]) = {
+  protected def decryptRequest[T](f: (T) => Future[Result])
+                                 (implicit request: Request[String], manifest : Manifest[T], reads : Reads[T], format : Format[T]): Future[Result] = {
     Try(DataSecurity.decryptInto[T](request.body)) match {
       case Success(Some(data)) =>
         Logger.info("[BackController] - [decryptRequest] Request body decryption successful")
@@ -52,7 +53,7 @@ trait BackController extends Controller {
     }
   }
 
-  protected def validateSession(id: String)(f: InitialSession => Future[Result])(implicit request: Request[String], format: OFormat[InitialSession]) = {
+  protected def validateSession(id: String)(f: Session => Future[Result])(implicit request: Request[String], format: OFormat[Session]): Future[Result] = {
     sessionRepo.getSession(id) flatMap {
       case Some(session) => f(session)
       case None =>
