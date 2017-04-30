@@ -16,10 +16,10 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class UpdateSet(key : String, data : String)
 
 object UpdateSet {
-  implicit val format = Json.format[UpdateSet]
+  implicit val format: OFormat[UpdateSet] = Json.format[UpdateSet]
 }

@@ -14,54 +14,99 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// $COVERAGE-OFF$
 package repositories
 
 import javax.inject.{Inject, Singleton}
 
-import com.cjwwdev.mongo.{MongoConnector, MongoCreateResponse, MongoDeleteResponse, MongoFailedRead, MongoSuccessRead, MongoUpdatedResponse}
-import config.ApplicationConfiguration
-import models.InitialSession
-import play.api.libs.json._
+import com.cjwwdev.logging.Logger
+import com.cjwwdev.reactivemongo._
+import config.Exceptions.{MissingSessionException, SessionKeyNotFoundException}
+import models.{Session, UpdateSet}
+import play.api.libs.json.OFormat
+import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.play.json._
 import reactivemongo.bson.BSONDocument
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
+
 @Singleton
-class SessionRepository @Inject()(mongoConnector: MongoConnector) extends ApplicationConfiguration  {
-  def cacheData(sessionID : String, data : String) : Future[MongoCreateResponse] = {
-    val now = InitialSession.getDateTime
-    val dataEntry = InitialSession(sessionID, Map("userInfo" -> data), Map("created" -> now, "lastModified" -> now))
-    mongoConnector.create[InitialSession](SESSION_CACHE, dataEntry)
-  }
+class SessionRepository @Inject()(connector: MongoConnector) extends MongoRepository("session-cache") {
 
-  def getData(sessionID : String, key : String)(implicit format: OFormat[InitialSession]) : Future[Option[String]] = {
-    val selector = BSONDocument("sessionId" -> sessionID)
-    mongoConnector.read[InitialSession](SESSION_CACHE, selector) map {
-      case MongoSuccessRead(model) => model.asInstanceOf[InitialSession].data.get(key)
-      case MongoFailedRead => None
-    }
-  }
-
-  def getSession(sessionID : String)(implicit format: OFormat[InitialSession]) : Future[Option[InitialSession]] = {
-    val selector = BSONDocument("sessionId" -> sessionID)
-    mongoConnector.read[InitialSession](SESSION_CACHE, selector) map {
-      case MongoSuccessRead(model) => Some(model.asInstanceOf[InitialSession])
-      case MongoFailedRead => None
-    }
-  }
-
-  def updateSession(sessionID : String, session : InitialSession, key : String, updateData : String)
-                   (implicit format: OFormat[InitialSession]) : Future[MongoUpdatedResponse] = {
-    val selector = BSONDocument("sessionId" -> sessionID)
-    val updated = session.copy(
-      data = session.data + (key -> updateData),
-      modifiedDetails = session.modifiedDetails. +("lastModified" -> InitialSession.getDateTime)
+  override def indexes: Seq[Index] = Seq(
+    Index(
+      key = Seq("sessionId" -> IndexType.Ascending),
+      name = Some("SessionId"),
+      unique = true,
+      sparse = false
     )
-    mongoConnector.update(SESSION_CACHE, selector, updated)
+  )
+
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = Future.successful(Seq(true))
+
+  private def sessionIdSelector(sessionId: String) = BSONDocument("sessionId" -> sessionId)
+
+  def cacheData(sessionID : String, data : String) : Future[MongoCreateResponse] = {
+    val now = Session.getDateTime
+    val dataEntry = Session(sessionID, Map("userInfo" -> data), Map("created" -> now, "lastModified" -> now))
+
+    collection.insert(dataEntry) map { writeResult =>
+      if(writeResult.ok) {
+        Logger.info(s"[SessionRepository] - [cacheData] : Data was successfully created in ${collection.name}")
+        MongoSuccessCreate
+      } else {
+        Logger.error(s"[SessionRepository] - [cacheData] : There was a problem inserting data into ${collection.name}]")
+        MongoFailedCreate
+      }
+    }
   }
 
-  def removeSessionRecord(sessionId : String) : Future[MongoDeleteResponse] = {
-    mongoConnector.delete(SESSION_CACHE, BSONDocument("sessionId" -> sessionId))
+  def getData(sessionID : String, key : String)(implicit format: OFormat[Session]) : Future[String] = {
+    collection.find(sessionIdSelector(sessionID)).one[Session] map {
+      case Some(session) => session.data.get(key) match {
+        case Some(kv) => kv
+        case None => throw new SessionKeyNotFoundException(s"Data for key $key could not be found in session for $sessionID")
+      }
+      case None => throw new MissingSessionException(s"No session found for session id $sessionID")
+    }
+  }
+
+  def getSession(sessionId: String)(implicit format: OFormat[Session]): Future[Option[Session]] = {
+    collection.find(sessionIdSelector(sessionId)).one[Session]
+  }
+
+  def updateSession(sessionId: String, updateSet: UpdateSet)(implicit format: OFormat[Session]): Future[MongoUpdatedResponse] = {
+    collection.find(sessionIdSelector(sessionId)).one[Session] flatMap {
+      case Some(session) =>
+        val updated = session.copy(
+          data = session.data + (updateSet.key -> updateSet.data),
+          modifiedDetails = session.modifiedDetails. +("lastModified" -> Session.getDateTime)
+        )
+        collection.update(sessionIdSelector(sessionId), updated) map { writeResult =>
+          if(writeResult.ok) {
+            Logger.info(s"[SessionRepository] - [updateSession] : Successfully updated session for session id $sessionId")
+            MongoSuccessUpdate
+          } else {
+            Logger.error(s"[SessionRepository] - [updateSession] : There was a problem updating session for session id $sessionId")
+            MongoFailedUpdate
+          }
+        }
+      case None => throw new MissingSessionException(s"No session found for session id $sessionId")
+    }
+  }
+
+  def removeSession(sessionId: String): Future[MongoDeleteResponse] = {
+    collection.remove(sessionIdSelector(sessionId)) map { writeResult =>
+      if(writeResult.ok) {
+        Logger.info(s"[SessionRepository] - [removeSession] : Successfully removed session $sessionId")
+
+        MongoSuccessDelete
+      } else {
+        Logger.error(s"[SessionRepository] - [removeSession] : There was a problem deleting session $sessionId")
+        MongoFailedDelete
+      }
+    }
   }
 }

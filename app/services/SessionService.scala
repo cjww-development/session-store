@@ -18,9 +18,8 @@ package services
 
 import javax.inject.{Inject, Singleton}
 
-import com.cjwwdev.mongo._
-import com.cjwwdev.logging.Logger
-import models.InitialSession
+import com.cjwwdev.reactivemongo._
+import models.{Session, UpdateSet}
 import play.api.libs.json.OFormat
 import repositories.SessionRepository
 
@@ -29,38 +28,30 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
 class SessionService @Inject()(sessionRepo: SessionRepository) {
+
   def cacheData(sessionID: String, data: String): Future[Boolean] = {
     sessionRepo.cacheData(sessionID, data) map {
-      case MongoSuccessCreate => true
-      case MongoFailedCreate  =>
-        Logger.error(s"[SessionRepo] - [cacheData] : There was a problem caching the data")
-        false
+      case MongoSuccessCreate   => true
+      case MongoFailedCreate    => false
     }
   }
 
-  def getByKey(sessionID : String, key : String)(implicit format : OFormat[InitialSession]) : Future[Option[String]] = {
+  def getByKey(sessionID : String, key : String)(implicit format : OFormat[Session]) : Future[Option[String]] = {
     sessionRepo.getData(sessionID, key) map {
-      data =>
-        if(data.isEmpty) Logger.error(s"[SessionRepo] - [getByKey] : data for this key could not be found")
-        data
+      data => Some(data)
+    } recover {
+      case _: Throwable => None
     }
   }
 
-  def updateDataKey(sessionID : String, key : String, data : String)(implicit format : OFormat[InitialSession]) : Future[MongoUpdatedResponse] = {
-    for {
-      Some(session) <- sessionRepo.getSession(sessionID)
-      mongoResponse <- sessionRepo.updateSession(sessionID, session, key, data)
-    } yield {
-      mongoResponse
-    }
+  def updateDataKey(sessionID : String, updateSet: UpdateSet): Future[MongoUpdatedResponse] = {
+    sessionRepo.updateSession(sessionID, updateSet)
   }
 
   def destroySessionRecord(sessionID : String) : Future[Boolean] = {
-    sessionRepo.removeSessionRecord(sessionID) map {
-      case MongoSuccessDelete => true
-      case MongoFailedDelete =>
-        Logger.error(s"[SessionRepo] - [destroySessionRecord] : There was a problem deleting the session")
-        false
+    sessionRepo.removeSession(sessionID) map {
+      case MongoSuccessDelete   => true
+      case MongoFailedDelete    => false
     }
   }
 }

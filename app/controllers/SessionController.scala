@@ -20,10 +20,10 @@ import javax.inject.{Inject, Singleton}
 
 import com.cjwwdev.auth.actions.{Authorised, BaseAuth, NotAuthorised}
 import com.cjwwdev.auth.connectors.AuthConnector
-import com.cjwwdev.mongo.MongoSuccessUpdate
+import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
 import config.BackController
 import models.UpdateSet
-import com.cjwwdev.logging.Logger
+import config.Exceptions.MissingSessionException
 import play.api.mvc.Action
 import services.SessionService
 
@@ -33,15 +33,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 @Singleton
 class SessionController @Inject()(sessionService: SessionService, authConnect: AuthConnector) extends BackController with BaseAuth {
 
-  val authConnector = authConnect
+  val authConnector: AuthConnector = authConnect
 
   def cache(sessionId: String) : Action[String] = Action.async(parse.text) {
     implicit request =>
       openActionVerification {
         case Authorised =>
-          sessionService.cacheData(sessionId, request.body) map {
-            case true => Created
-            case false => InternalServerError
+          sessionService.cacheData(sessionId, request.body) map { cached =>
+            if(cached) Created else InternalServerError
           }
         case NotAuthorised => Future.successful(Forbidden)
       }
@@ -52,7 +51,6 @@ class SessionController @Inject()(sessionService: SessionService, authConnect: A
       openActionVerification {
         case Authorised =>
           validateSession(sessionId) { session =>
-            Logger.info(s"[SessionController] - [getEntry] key = $key")
             sessionService.getByKey(session.sessionId, key) map {
               case Some(data) => Ok(data)
               case None => NotFound
@@ -68,9 +66,9 @@ class SessionController @Inject()(sessionService: SessionService, authConnect: A
         case Authorised =>
           validateSession(sessionId) { session =>
             decryptRequest[UpdateSet] { updateData =>
-              sessionService.updateDataKey(session.sessionId, updateData.key, updateData.data) map {
+              sessionService.updateDataKey(session.sessionId, updateData) map {
                 case MongoSuccessUpdate => Ok
-                case _ => InternalServerError
+                case MongoFailedUpdate => InternalServerError
               }
             }
           }
@@ -83,9 +81,8 @@ class SessionController @Inject()(sessionService: SessionService, authConnect: A
       openActionVerification {
         case Authorised =>
           validateSession(sessionId) { session =>
-            sessionService.destroySessionRecord(session.sessionId) map {
-              case true => Ok
-              case false => InternalServerError
+            sessionService.destroySessionRecord(session.sessionId) map { destroyed =>
+              if(destroyed) Ok else InternalServerError
             }
           }
         case NotAuthorised => Future.successful(Forbidden)
