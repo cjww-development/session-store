@@ -34,7 +34,7 @@ class DestroySessionISpec extends CJWWIntegrationUtils {
 
         result.status mustBe OK
 
-        await(sessionRepo.getSession("session-test-session-id")) mustBe None
+        await(sessionRepo.store.getSession("session-test-session-id")) mustBe None
       }
     }
 

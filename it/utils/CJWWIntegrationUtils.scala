@@ -26,8 +26,7 @@ import scala.concurrent.duration._
 
 trait CJWWIntegrationUtils extends PlaySpec with GuiceOneServerPerSuite {
 
-  val mongoConnector = new MongoConnector
-  val sessionRepo: SessionRepository = new SessionRepository(mongoConnector)
+  val sessionRepo: SessionRepository = new SessionRepository
 
   val baseUrl = s"http://localhost:$port/session-store"
 
@@ -36,10 +35,10 @@ trait CJWWIntegrationUtils extends PlaySpec with GuiceOneServerPerSuite {
   def await[T](awaitable: Awaitable[T]): T = Await.result(awaitable, 5.seconds)
 
   def beforeITest(): Unit = {
-    await(sessionRepo.cacheData("session-test-session-id", "testData"))
+    await(sessionRepo.store.cacheData("session-test-session-id", "testData"))
   }
 
   def afterITest(): Unit = {
-    await(sessionRepo.removeSession("session-test-session-id"))
+    await(sessionRepo.store.removeSession("session-test-session-id"))
   }
 }

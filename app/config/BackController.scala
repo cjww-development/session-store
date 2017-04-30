@@ -30,8 +30,7 @@ import scala.util.{Failure, Success, Try}
 
 trait BackController extends Controller {
 
-  val mongoConnector = new MongoConnector
-  val sessionRepo = new SessionRepository(mongoConnector)
+  val sessionRepo = new SessionRepository
 
   protected def processJsonBody[T](f: (T) => Future[Result])(implicit request : JsValue, manifest : Manifest[T], reads : Reads[T]): Future[Result] =
     Try(request.validate[T]) match {
@@ -54,7 +53,7 @@ trait BackController extends Controller {
   }
 
   protected def validateSession(id: String)(f: Session => Future[Result])(implicit request: Request[String], format: OFormat[Session]): Future[Result] = {
-    sessionRepo.getSession(id) flatMap {
+    sessionRepo.store.getSession(id) flatMap {
       case Some(session) => f(session)
       case None =>
         Logger.warn("[BackController] - [validateSession]: Session is invalid, action forbidden")

@@ -31,7 +31,7 @@ class CacheDataISpec extends CJWWIntegrationUtils {
         val result = await(request)
         result.status mustBe CREATED
 
-        val userInfo = await(sessionRepo.getSession("session-test-session-id"))
+        val userInfo = await(sessionRepo.store.getSession("session-test-session-id"))
         userInfo.get.data("userInfo") mustBe "testData"
 
         afterITest()

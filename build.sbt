@@ -13,7 +13,7 @@ val btVersion: String = {
 name := """session-store"""
 version := btVersion
 scalaVersion := "2.11.11"
-organization := "com.cjww-dev.apps"
+organization := "com.cjww-dev.backends"
 
 lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
@@ -39,11 +39,11 @@ lazy val root = (project in file("."))
 PlayKeys.devSettings := Seq("play.server.http.port" -> "8400")
 
 val cjwwDep: Seq[ModuleID] = Seq(
-  "com.cjww-dev.libs" % "data-security_2.11" % "0.6.0",
-  "com.cjww-dev.libs" % "logging_2.11" % "0.2.0",
-  "com.cjww-dev.libs" % "reactive-mongo_2.11" % "1.3.1",
-  "com.cjww-dev.libs" % "bootstrapper_2.11" % "0.7.0",
-  "com.cjww-dev.libs" % "backend-auth_2.11" % "0.7.0"
+  "com.cjww-dev.libs" % "data-security_2.11" % "0.7.0",
+  "com.cjww-dev.libs" % "logging_2.11" % "0.3.0",
+  "com.cjww-dev.libs" % "reactive-mongo_2.11" % "1.6.0",
+  "com.cjww-dev.libs" % "bootstrapper_2.11" % "0.8.0",
+  "com.cjww-dev.libs" % "backend-auth_2.11" % "0.8.0"
 )
 
 val testDep: Seq[ModuleID] = Seq(

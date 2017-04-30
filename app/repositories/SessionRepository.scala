@@ -24,6 +24,7 @@ import com.cjwwdev.reactivemongo._
 import config.Exceptions.{MissingSessionException, SessionKeyNotFoundException}
 import models.{Session, UpdateSet}
 import play.api.libs.json.OFormat
+import reactivemongo.api.DB
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.play.json._
 import reactivemongo.bson.BSONDocument
@@ -31,9 +32,12 @@ import reactivemongo.bson.BSONDocument
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-
 @Singleton
-class SessionRepository @Inject()(connector: MongoConnector) extends MongoRepository("session-cache") {
+class SessionRepository @Inject()() extends MongoConnector {
+  val store = new SessionRepo(db)
+}
+
+class SessionRepo(db: () => DB) extends MongoRepository("session-cache", db) {
 
   override def indexes: Seq[Index] = Seq(
     Index(

@@ -40,7 +40,7 @@ class UpdateSessionISpec extends CJWWIntegrationUtils {
 
         result.status mustBe OK
 
-        await(sessionRepo.getData("session-test-session-id", "testKey")) mustBe "SomeData"
+        await(sessionRepo.store.getData("session-test-session-id", "testKey")) mustBe "SomeData"
 
         afterITest()
       }
