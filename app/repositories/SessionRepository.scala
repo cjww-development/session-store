@@ -28,7 +28,7 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.play.json._
 import reactivemongo.bson.BSONDocument
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
@@ -43,8 +43,6 @@ class SessionRepository @Inject()(connector: MongoConnector) extends MongoReposi
       sparse = false
     )
   )
-
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = Future.successful(Seq(true))
 
   private def sessionIdSelector(sessionId: String) = BSONDocument("sessionId" -> sessionId)
 
