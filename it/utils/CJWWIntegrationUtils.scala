@@ -15,7 +15,6 @@
 // limitations under the License.
 package utils
 
-import com.cjwwdev.reactivemongo.MongoConnector
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.ws.{WS, WSRequest}
