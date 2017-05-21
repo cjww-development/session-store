@@ -19,21 +19,17 @@ package controllers
 import javax.inject.{Inject, Singleton}
 
 import com.cjwwdev.auth.actions.{Authorised, BaseAuth, NotAuthorised}
-import com.cjwwdev.auth.connectors.AuthConnector
 import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
+import play.api.mvc.{Action, AnyContent}
 import config.BackController
 import models.UpdateSet
-import config.Exceptions.MissingSessionException
-import play.api.mvc.Action
 import services.SessionService
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
-class SessionController @Inject()(sessionService: SessionService, authConnect: AuthConnector) extends BackController with BaseAuth {
-
-  val authConnector: AuthConnector = authConnect
+class SessionController @Inject()(sessionService: SessionService) extends BackController with BaseAuth {
 
   def cache(sessionId: String) : Action[String] = Action.async(parse.text) {
     implicit request =>
@@ -46,7 +42,7 @@ class SessionController @Inject()(sessionService: SessionService, authConnect: A
       }
   }
 
-  def getEntry(sessionId: String, key: String) : Action[String] = Action.async(parse.text) {
+  def getEntry(sessionId: String, key: String) : Action[AnyContent] = Action.async {
     implicit request =>
       openActionVerification {
         case Authorised =>
@@ -64,7 +60,7 @@ class SessionController @Inject()(sessionService: SessionService, authConnect: A
     implicit request =>
       openActionVerification {
         case Authorised =>
-          validateSession(sessionId) { session =>
+        validateSession(sessionId) { session =>
             decryptRequest[UpdateSet] { updateData =>
               sessionService.updateDataKey(session.sessionId, updateData) map {
                 case MongoSuccessUpdate => Ok
@@ -76,7 +72,7 @@ class SessionController @Inject()(sessionService: SessionService, authConnect: A
       }
   }
 
-  def destroy(sessionId: String) : Action[String] = Action.async(parse.text) {
+  def destroy(sessionId: String) : Action[AnyContent] = Action.async {
     implicit request =>
       openActionVerification {
         case Authorised =>

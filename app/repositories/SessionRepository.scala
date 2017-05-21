@@ -14,7 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// $COVERAGE-OFF$
 package repositories
 
 import javax.inject.{Inject, Singleton}
@@ -22,7 +21,7 @@ import javax.inject.{Inject, Singleton}
 import com.cjwwdev.logging.Logger
 import com.cjwwdev.reactivemongo._
 import config.Exceptions.{MissingSessionException, SessionKeyNotFoundException}
-import models.{Session, UpdateSet}
+import models.{Session, SessionTimestamps, UpdateSet}
 import play.api.libs.json.OFormat
 import reactivemongo.api.DB
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -51,8 +50,7 @@ class SessionRepo(db: () => DB) extends MongoRepository("session-cache", db) {
   private def sessionIdSelector(sessionId: String) = BSONDocument("sessionId" -> sessionId)
 
   def cacheData(sessionID : String, data : String) : Future[MongoCreateResponse] = {
-    val now = Session.getDateTime
-    val dataEntry = Session(sessionID, Map("userInfo" -> data), Map("created" -> now, "lastModified" -> now))
+    val dataEntry = Session(sessionID, Map("userInfo" -> data), SessionTimestamps(Session.getDateTime, Session.getDateTime))
 
     collection.insert(dataEntry) map { writeResult =>
       if(writeResult.ok) {
@@ -84,7 +82,7 @@ class SessionRepo(db: () => DB) extends MongoRepository("session-cache", db) {
       case Some(session) =>
         val updated = session.copy(
           data = session.data + (updateSet.key -> updateSet.data),
-          modifiedDetails = session.modifiedDetails. +("lastModified" -> Session.getDateTime)
+          modifiedDetails = session.modifiedDetails.copy(lastModified = Session.getDateTime)
         )
         collection.update(sessionIdSelector(sessionId), updated) map { writeResult =>
           if(writeResult.ok) {

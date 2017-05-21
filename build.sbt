@@ -3,11 +3,9 @@ import com.typesafe.config.ConfigFactory
 
 import scala.util.{Failure, Success, Try}
 
-val btVersion: String = {
-  Try(ConfigFactory.load.getString("version")) match {
-    case Success(ver) => ver
-    case Failure(_) => "0.1.0"
-  }
+val btVersion: String = Try(ConfigFactory.load.getString("version")) match {
+  case Success(ver) => ver
+  case Failure(_) => "0.1.0"
 }
 
 name := """session-store"""
@@ -15,11 +13,9 @@ version := btVersion
 scalaVersion := "2.11.11"
 organization := "com.cjww-dev.backends"
 
-lazy val playSettings : Seq[Setting[_]] = Seq.empty
-
 lazy val scoverageSettings = {
   Seq(
-    ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;models/.data/..*;views.*;models.*;config.*;.*(AuthService|BuildInfo|Routes).*",
+    ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;/.data/..*;views.*;models.*;config.*;.*(AuthService|BuildInfo|Routes).*",
     ScoverageKeys.coverageMinimum := 80,
     ScoverageKeys.coverageFailOnMinimum := false,
     ScoverageKeys.coverageHighlighting := true
@@ -28,7 +24,7 @@ lazy val scoverageSettings = {
 
 lazy val root = (project in file("."))
   .enablePlugins(PlayScala)
-  .settings(playSettings ++ scoverageSettings : _*)
+  .settings(scoverageSettings : _*)
   .configs(IntegrationTest)
   .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
   .settings(
@@ -39,11 +35,11 @@ lazy val root = (project in file("."))
 PlayKeys.devSettings := Seq("play.server.http.port" -> "8400")
 
 val cjwwDep: Seq[ModuleID] = Seq(
-  "com.cjww-dev.libs" % "data-security_2.11" % "0.8.0",
-  "com.cjww-dev.libs" % "logging_2.11" % "0.4.0",
-  "com.cjww-dev.libs" % "reactive-mongo_2.11" % "1.10.0",
-  "com.cjww-dev.libs" % "bootstrapper_2.11" % "1.1.0",
-  "com.cjww-dev.libs" % "backend-auth_2.11" % "0.12.0"
+  "com.cjww-dev.libs" % "data-security_2.11"      % "0.10.0",
+  "com.cjww-dev.libs" % "logging_2.11"            % "0.5.0",
+  "com.cjww-dev.libs" % "reactive-mongo_2.11"     % "1.12.0",
+  "com.cjww-dev.libs" % "bootstrapper_2.11"       % "1.4.2",
+  "com.cjww-dev.libs" % "backend-auth_2.11"       % "0.13.0"
 )
 
 val testDep: Seq[ModuleID] = Seq(
@@ -54,12 +50,11 @@ val testDep: Seq[ModuleID] = Seq(
 libraryDependencies ++= cjwwDep
 libraryDependencies ++= testDep
 
-resolvers += "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases"
 resolvers += "cjww-dev" at "http://dl.bintray.com/cjww-development/releases"
 
 herokuAppName in Compile := "cjww-session-store"
 
 bintrayOrganization := Some("cjww-development")
-bintrayReleaseOnPublish in ThisBuild := false
+bintrayReleaseOnPublish in ThisBuild := true
 bintrayRepository := "releases"
 bintrayOmitLicense := true

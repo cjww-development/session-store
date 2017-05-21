@@ -17,9 +17,9 @@
 package config
 
 import com.cjwwdev.logging.Logger
-import com.cjwwdev.reactivemongo.MongoConnector
 import com.cjwwdev.security.encryption.DataSecurity
 import models.Session
+import org.joda.time.{DateTime, Interval}
 import play.api.libs.json._
 import play.api.mvc.{Controller, Request, Result}
 import repositories.SessionRepository
@@ -35,8 +35,8 @@ trait BackController extends Controller {
   protected def processJsonBody[T](f: (T) => Future[Result])(implicit request : JsValue, manifest : Manifest[T], reads : Reads[T]): Future[Result] =
     Try(request.validate[T]) match {
       case Success(JsSuccess(data, _)) => f(data)
-      case Success(JsError(errs)) => Future.successful(BadRequest)
-      case Failure(e) => Future.successful(BadRequest)
+      case Success(JsError(_)) => Future.successful(BadRequest)
+      case Failure(_) => Future.successful(BadRequest)
     }
 
   protected def decryptRequest[T](f: (T) => Future[Result])
@@ -52,12 +52,18 @@ trait BackController extends Controller {
     }
   }
 
-  protected def validateSession(id: String)(f: Session => Future[Result])(implicit request: Request[String], format: OFormat[Session]): Future[Result] = {
+  protected def validateSession(id: String)(f: Session => Future[Result])(implicit format: OFormat[Session]): Future[Result] = {
     sessionRepo.store.getSession(id) flatMap {
-      case Some(session) => f(session)
+      case Some(session) => if(validateTimestamps(session.modifiedDetails.lastModified)) f(session) else Future.successful(Forbidden)
       case None =>
         Logger.warn("[BackController] - [validateSession]: Session is invalid, action forbidden")
         Future.successful(Forbidden)
     }
+  }
+
+  private def validateTimestamps(lastModified: DateTime): Boolean = {
+    val interval = new Interval(lastModified, DateTime.now)
+    Logger.debug(s"TIME INTERVAL IS ${interval.toDuration.getStandardHours}")
+    if(interval.toDuration.getStandardHours >= 1) false else true
   }
 }

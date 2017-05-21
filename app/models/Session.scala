@@ -17,27 +17,42 @@
 package models
 
 import org.joda.time.{DateTime, DateTimeZone}
+import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
 case class Session(sessionId : String,
                    data : Map[String, String],
-                   modifiedDetails : Map[String, DateTime])
+                   modifiedDetails : SessionTimestamps)
 
 object Session {
-  implicit val dateTimeRead: Reads[DateTime] =
-    (__ \ "$date").read[Long].map { dateTime =>
-      new DateTime(dateTime, DateTimeZone.UTC)
-    }
+  implicit val format: OFormat[Session] = (
+    (__ \ "sessionId").format[String] and
+    (__ \ "data").format[Map[String, String]] and
+    (__ \ "modifiedDetails").format[SessionTimestamps](SessionTimestamps.timeFormat)
+  )(Session.apply, unlift(Session.unapply))
 
-  implicit val dateTimeWrite: Writes[DateTime] = new Writes[DateTime] {
+
+  def getDateTime : DateTime = {
+    new DateTime(DateTime.now.getMillis, DateTimeZone.UTC)
+  }
+}
+
+case class SessionTimestamps(created: DateTime, lastModified: DateTime)
+
+object SessionTimestamps {
+
+  val dateTimeRead: Reads[DateTime] = (__ \ "$date").read[Long].map { dateTime =>
+    new DateTime(dateTime, DateTimeZone.UTC)
+  }
+
+  val dateTimeWrite: Writes[DateTime] = new Writes[DateTime] {
     def writes(dateTime: DateTime): JsValue = Json.obj(
       "$date" -> dateTime.getMillis
     )
   }
 
-  implicit val format: OFormat[Session] = Json.format[Session]
-
-  def getDateTime : DateTime = {
-    new DateTime(DateTime.now.getMillis, DateTimeZone.UTC)
-  }
+  implicit val timeFormat: OFormat[SessionTimestamps] = (
+    (__ \ "created").format(dateTimeRead)(dateTimeWrite) and
+    (__ \ "lastModified").format(dateTimeRead)(dateTimeWrite)
+  )(SessionTimestamps.apply, unlift(SessionTimestamps.unapply))
 }

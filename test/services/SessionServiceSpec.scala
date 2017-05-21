@@ -17,33 +17,21 @@ package services
 
 import com.cjwwdev.reactivemongo._
 import config.Exceptions.SessionKeyNotFoundException
-import mocks.MongoMocks
-import models.{Session, UpdateSet}
-import org.joda.time.DateTime
+import models.UpdateSet
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import org.scalatestplus.play.PlaySpec
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import repositories.{SessionRepo, SessionRepository}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
-class SessionServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with MongoMocks {
+class SessionServiceSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
 
   val mockRepo = mock[SessionRepository]
   val mockStore = mock[SessionRepo]
-
-  val testInitial = Session(
-    "testID",
-    Map(
-      "testKey" -> "testData"
-    ),
-    Map(
-      "created" -> new DateTime(),
-      "lastModified" -> new DateTime()
-    )
-  )
 
   val testUpdateSet = UpdateSet("userInfo","testData")
 
