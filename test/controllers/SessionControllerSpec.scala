@@ -128,7 +128,7 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
 
         val result = testController.updateSession("test-session-id")(FakeRequest()
           .withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID)
-          .withBody(DataSecurity.encryptData(UpdateSet("testKey","testData")).get)
+          .withBody(DataSecurity.encryptType(UpdateSet("testKey","testData")).get)
         )
         status(result) mustBe OK
       }
@@ -141,7 +141,7 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
 
         val result = testController.updateSession("test-session-id")(FakeRequest()
           .withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID)
-          .withBody(DataSecurity.encryptData(UpdateSet("testKey","testData")).get)
+          .withBody(DataSecurity.encryptType(UpdateSet("testKey","testData")).get)
         )
         status(result) mustBe INTERNAL_SERVER_ERROR
       }

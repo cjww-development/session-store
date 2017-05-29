@@ -51,7 +51,6 @@ class SessionRepo(db: () => DB) extends MongoRepository("session-cache", db) {
 
   def cacheData(sessionID : String, data : String) : Future[MongoCreateResponse] = {
     val dataEntry = Session(sessionID, Map("userInfo" -> data), SessionTimestamps(Session.getDateTime, Session.getDateTime))
-
     collection.insert(dataEntry) map { writeResult =>
       if(writeResult.ok) {
         Logger.info(s"[SessionRepository] - [cacheData] : Data was successfully created in ${collection.name}")
@@ -82,7 +81,9 @@ class SessionRepo(db: () => DB) extends MongoRepository("session-cache", db) {
       case Some(session) =>
         val updated = session.copy(
           data = session.data + (updateSet.key -> updateSet.data),
-          modifiedDetails = session.modifiedDetails.copy(lastModified = Session.getDateTime)
+          modifiedDetails = session.modifiedDetails.copy(
+            lastModified = Session.getDateTime
+          )
         )
         collection.update(sessionIdSelector(sessionId), updated) map { writeResult =>
           if(writeResult.ok) {
@@ -101,7 +102,6 @@ class SessionRepo(db: () => DB) extends MongoRepository("session-cache", db) {
     collection.remove(sessionIdSelector(sessionId)) map { writeResult =>
       if(writeResult.ok) {
         Logger.info(s"[SessionRepository] - [removeSession] : Successfully removed session $sessionId")
-
         MongoSuccessDelete
       } else {
         Logger.error(s"[SessionRepository] - [removeSession] : There was a problem deleting session $sessionId")

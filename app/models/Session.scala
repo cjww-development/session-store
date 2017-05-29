@@ -16,43 +16,34 @@
 
 package models
 
+import com.cjwwdev.json.JsonFormats
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+
+case class SessionTimestamps(created: DateTime, lastModified: DateTime)
+
+object SessionTimestamps extends JsonFormats[SessionTimestamps] {
+  implicit val standardFormat: OFormat[SessionTimestamps] = (
+    (__ \ "created").format(dateTimeRead)(dateTimeWrite) and
+      (__ \ "lastModified").format(dateTimeRead)(dateTimeWrite)
+    )(SessionTimestamps.apply, unlift(SessionTimestamps.unapply))
+}
+
 
 case class Session(sessionId : String,
                    data : Map[String, String],
                    modifiedDetails : SessionTimestamps)
 
-object Session {
-  implicit val format: OFormat[Session] = (
+object Session extends JsonFormats[Session] {
+  override implicit val standardFormat: OFormat[Session] = (
     (__ \ "sessionId").format[String] and
     (__ \ "data").format[Map[String, String]] and
-    (__ \ "modifiedDetails").format[SessionTimestamps](SessionTimestamps.timeFormat)
+    (__ \ "modifiedDetails").format[SessionTimestamps](SessionTimestamps.standardFormat)
   )(Session.apply, unlift(Session.unapply))
 
 
   def getDateTime : DateTime = {
     new DateTime(DateTime.now.getMillis, DateTimeZone.UTC)
   }
-}
-
-case class SessionTimestamps(created: DateTime, lastModified: DateTime)
-
-object SessionTimestamps {
-
-  val dateTimeRead: Reads[DateTime] = (__ \ "$date").read[Long].map { dateTime =>
-    new DateTime(dateTime, DateTimeZone.UTC)
-  }
-
-  val dateTimeWrite: Writes[DateTime] = new Writes[DateTime] {
-    def writes(dateTime: DateTime): JsValue = Json.obj(
-      "$date" -> dateTime.getMillis
-    )
-  }
-
-  implicit val timeFormat: OFormat[SessionTimestamps] = (
-    (__ \ "created").format(dateTimeRead)(dateTimeWrite) and
-    (__ \ "lastModified").format(dateTimeRead)(dateTimeWrite)
-  )(SessionTimestamps.apply, unlift(SessionTimestamps.unapply))
 }

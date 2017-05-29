@@ -1,5 +1,5 @@
 // The Play plugin
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.5.14")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.5.15")
 
 // Test plugins
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.0-RC1")
