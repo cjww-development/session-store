@@ -61,7 +61,7 @@ class SessionController @Inject()(sessionService: SessionService) extends BackCo
       openActionVerification {
         case Authorised =>
         validateSession(sessionId) { session =>
-            decryptRequest[UpdateSet] { updateData =>
+            decryptRequest[UpdateSet](UpdateSet.standardFormat) { updateData =>
               sessionService.updateDataKey(session.sessionId, updateData) map {
                 case MongoSuccessUpdate => Ok
                 case MongoFailedUpdate => InternalServerError

@@ -35,16 +35,17 @@ lazy val root = (project in file("."))
 PlayKeys.devSettings := Seq("play.server.http.port" -> "8400")
 
 val cjwwDep: Seq[ModuleID] = Seq(
-  "com.cjww-dev.libs" % "data-security_2.11"      % "0.10.0",
-  "com.cjww-dev.libs" % "logging_2.11"            % "0.5.0",
-  "com.cjww-dev.libs" % "reactive-mongo_2.11"     % "1.12.0",
-  "com.cjww-dev.libs" % "bootstrapper_2.11"       % "1.4.2",
-  "com.cjww-dev.libs" % "backend-auth_2.11"       % "0.14.0"
+  "com.cjww-dev.libs" % "data-security_2.11"            % "1.1.0",
+  "com.cjww-dev.libs" % "logging_2.11"                  % "0.6.0",
+  "com.cjww-dev.libs" % "reactive-mongo_2.11"           % "1.13.0",
+  "com.cjww-dev.libs" % "bootstrapper_2.11"             % "1.5.0",
+  "com.cjww-dev.libs" % "backend-auth_2.11"             % "0.14.0",
+  "com.cjww-dev.libs" % "application-utilities_2.11"    % "0.2.0"
 )
 
 val testDep: Seq[ModuleID] = Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % Test,
-  "org.mockito" % "mockito-core" % "2.7.22" % Test
+  "org.mockito" % "mockito-core" % "2.8.9" % Test
 )
 
 libraryDependencies ++= cjwwDep

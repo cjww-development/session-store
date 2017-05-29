@@ -16,10 +16,15 @@
 
 package models
 
-import play.api.libs.json.{Json, OFormat}
+import com.cjwwdev.json.JsonFormats
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
 
 case class UpdateSet(key : String, data : String)
 
-object UpdateSet {
-  implicit val format: OFormat[UpdateSet] = Json.format[UpdateSet]
+object UpdateSet extends JsonFormats[UpdateSet] {
+  implicit val standardFormat: OFormat[UpdateSet] = (
+    (__ \ "key").format[String] and
+    (__ \ "data").format[String]
+  )(UpdateSet.apply, unlift(UpdateSet.unapply))
 }

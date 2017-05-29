@@ -17,7 +17,6 @@
 package app
 
 import play.api.test.Helpers._
-import models.Session.format
 import utils.CJWWIntegrationUtils
 
 class CacheDataISpec extends CJWWIntegrationUtils {
