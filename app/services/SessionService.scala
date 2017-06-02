@@ -38,12 +38,8 @@ class SessionService @Inject()(sessionRepo: SessionRepository) {
     }
   }
 
-  def getByKey(sessionID : String, key : String)(implicit format : OFormat[Session]) : Future[Option[String]] = {
-    store.getData(sessionID, key) map {
-      data => Some(data)
-    } recover {
-      case _: Throwable => None
-    }
+  def getByKey(sessionID : String, key : String)(implicit format : OFormat[Session]) : Future[String] = {
+    store.getData(sessionID, key)
   }
 
   def updateDataKey(sessionID : String, updateSet: UpdateSet): Future[MongoUpdatedResponse] = {

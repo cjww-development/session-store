@@ -20,7 +20,7 @@ import javax.inject.{Inject, Singleton}
 
 import com.cjwwdev.logging.Logger
 import com.cjwwdev.reactivemongo._
-import config.Exceptions.{MissingSessionException, SessionKeyNotFoundException}
+import config.{MissingSessionException, SessionKeyNotFoundException}
 import models.{Session, SessionTimestamps, UpdateSet}
 import play.api.libs.json.OFormat
 import reactivemongo.api.DB
@@ -50,7 +50,7 @@ class SessionRepo(db: () => DB) extends MongoRepository("session-cache", db) {
   private def sessionIdSelector(sessionId: String) = BSONDocument("sessionId" -> sessionId)
 
   def cacheData(sessionID : String, data : String) : Future[MongoCreateResponse] = {
-    val dataEntry = Session(sessionID, Map("userInfo" -> data), SessionTimestamps(Session.getDateTime, Session.getDateTime))
+    val dataEntry = Session(sessionID, Map("contextId" -> data), SessionTimestamps(Session.getDateTime, Session.getDateTime))
     collection.insert(dataEntry) map { writeResult =>
       if(writeResult.ok) {
         Logger.info(s"[SessionRepository] - [cacheData] : Data was successfully created in ${collection.name}")

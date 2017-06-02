@@ -16,13 +16,9 @@
 
 package config
 
-import scala.util.control.NoStackTrace
+class MongoFailedCreateException(msg: String) extends Exception(msg)
+class MongoFailedUpdateException(msg: String) extends Exception(msg)
+class MongoFailedDeleteException(msg: String) extends Exception(msg)
 
-object Exceptions {
-  class MongoFailedCreateException(msg: String) extends NoStackTrace
-  class MongoFailedUpdateException(msg: String) extends NoStackTrace
-  class MongoFailedDeleteException(msg: String) extends NoStackTrace
-
-  class SessionKeyNotFoundException(msg: String) extends NoStackTrace
-  class MissingSessionException(msg: String) extends NoStackTrace
-}
+class SessionKeyNotFoundException(msg: String) extends Exception(msg)
+class MissingSessionException(msg: String) extends Exception(msg)

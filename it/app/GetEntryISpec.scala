@@ -25,7 +25,7 @@ class GetEntryISpec extends CJWWIntegrationUtils {
       "data has been found with the key" in {
         beforeITest()
 
-        val request = client(s"$baseUrl/session/session-test-session-id/data/userInfo")
+        val request = client(s"$baseUrl/session/session-test-session-id/data/contextId")
           .withHeaders(
             "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
             CONTENT_TYPE -> TEXT

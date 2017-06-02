@@ -16,7 +16,6 @@
 package services
 
 import com.cjwwdev.reactivemongo._
-import config.Exceptions.SessionKeyNotFoundException
 import models.UpdateSet
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
@@ -65,15 +64,7 @@ class SessionServiceSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoS
         .thenReturn(Future.successful("testData"))
 
       val result = Await.result(testService.getByKey("sessionID", "testKey"), 5.seconds)
-      result mustBe Some("testData")
-    }
-
-    "return none" in new Setup {
-      when(mockStore.getData(ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
-        .thenReturn(Future.failed(new SessionKeyNotFoundException("")))
-
-      val result = Await.result(testService.getByKey("sessionID", "testKey"), 5.seconds)
-      result mustBe None
+      result mustBe "testData"
     }
   }
 

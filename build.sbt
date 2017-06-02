@@ -39,8 +39,8 @@ val cjwwDep: Seq[ModuleID] = Seq(
   "com.cjww-dev.libs" % "logging_2.11"                  % "0.6.0",
   "com.cjww-dev.libs" % "reactive-mongo_2.11"           % "1.13.0",
   "com.cjww-dev.libs" % "bootstrapper_2.11"             % "1.5.0",
-  "com.cjww-dev.libs" % "backend-auth_2.11"             % "0.14.0",
-  "com.cjww-dev.libs" % "application-utilities_2.11"    % "0.2.0"
+  "com.cjww-dev.libs" % "backend-auth_2.11"             % "1.2.0",
+  "com.cjww-dev.libs" % "application-utilities_2.11"    % "0.4.0"
 )
 
 val testDep: Seq[ModuleID] = Seq(

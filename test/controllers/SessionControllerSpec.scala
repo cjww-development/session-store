@@ -21,6 +21,7 @@ import akka.stream.ActorMaterializer
 import com.cjwwdev.bootstrap.config.BaseConfiguration
 import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
 import com.cjwwdev.security.encryption.DataSecurity
+import config.SessionKeyNotFoundException
 import models.{Session, SessionTimestamps, UpdateSet}
 import org.joda.time.DateTime
 import org.scalatest.mockito.MockitoSugar
@@ -95,7 +96,7 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
     "return an OK" when {
       "data was found matching the specified key" in new Setup {
         when(mockSessionService.getByKey(ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
-          .thenReturn(Future.successful(Some("testData")))
+          .thenReturn(Future.successful("testData"))
 
         val result = testController.getEntry("test-session-id", "test-key")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
         status(result) mustBe OK
@@ -105,7 +106,7 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
     "return a Not found" when {
       "no data was found matching the specified key" in new Setup {
         when(mockSessionService.getByKey(ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
-          .thenReturn(Future.successful(None))
+          .thenReturn(Future.failed(new SessionKeyNotFoundException("test message")))
 
         val result = testController.getEntry("test-session-id", "test-key")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
         status(result) mustBe NOT_FOUND

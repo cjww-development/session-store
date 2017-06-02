@@ -21,7 +21,7 @@ import javax.inject.{Inject, Singleton}
 import com.cjwwdev.auth.actions.{Authorised, BaseAuth, NotAuthorised}
 import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
 import play.api.mvc.{Action, AnyContent}
-import config.BackController
+import config.{BackController, MissingSessionException, SessionKeyNotFoundException}
 import models.UpdateSet
 import services.SessionService
 
@@ -48,8 +48,10 @@ class SessionController @Inject()(sessionService: SessionService) extends BackCo
         case Authorised =>
           validateSession(sessionId) { session =>
             sessionService.getByKey(session.sessionId, key) map {
-              case Some(data) => Ok(data)
-              case None => NotFound
+              data => Ok(data)
+            } recover {
+              case _: SessionKeyNotFoundException => NotFound
+              case _: MissingSessionException     => Forbidden
             }
           }
         case NotAuthorised => Future.successful(Forbidden)
