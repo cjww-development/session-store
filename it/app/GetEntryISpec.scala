@@ -15,6 +15,8 @@
 // limitations under the License.
 package app
 
+import com.cjwwdev.security.encryption.DataSecurity
+import play.api.libs.json.{JsValue, Json}
 import utils.CJWWIntegrationUtils
 import play.api.test.Helpers._
 
@@ -34,7 +36,7 @@ class GetEntryISpec extends CJWWIntegrationUtils {
 
         val result = await(request)
         result.status mustBe OK
-        result.body mustBe "testData"
+        result.body mustBe DataSecurity.encryptType[JsValue](Json.parse("""{"data":"testData"}""")).get
 
         afterITest()
       }

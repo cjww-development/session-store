@@ -19,10 +19,13 @@ package controllers
 import javax.inject.{Inject, Singleton}
 
 import com.cjwwdev.auth.actions.{Authorised, BaseAuth, NotAuthorised}
+import com.cjwwdev.logging.Logger
 import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
+import com.cjwwdev.security.encryption.DataSecurity
 import play.api.mvc.{Action, AnyContent}
 import config.{BackController, MissingSessionException, SessionKeyNotFoundException}
 import models.UpdateSet
+import play.api.libs.json.{JsValue, Json}
 import services.SessionService
 
 import scala.concurrent.Future
@@ -48,7 +51,7 @@ class SessionController @Inject()(sessionService: SessionService) extends BackCo
         case Authorised =>
           validateSession(sessionId) { session =>
             sessionService.getByKey(session.sessionId, key) map {
-              data => Ok(data)
+              data => Ok(DataSecurity.encryptType[JsValue](Json.parse(s"""{"data" : "$data"}""")).get)
             } recover {
               case _: SessionKeyNotFoundException => NotFound
               case _: MissingSessionException     => Forbidden
