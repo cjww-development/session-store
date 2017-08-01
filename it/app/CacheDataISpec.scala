@@ -23,14 +23,14 @@ class CacheDataISpec extends CJWWIntegrationUtils {
   "/session/{session-test-session-id}/cache" should {
     "return a created" when {
       "a new session has been created in session-store" in {
-        val request = client(s"$baseUrl/session/session-test-session-id/cache")
+        val request = client(s"$baseUrl/session/session-$uuid/cache")
           .withHeaders("appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130")
           .post("testData")
 
         val result = await(request)
         result.status mustBe CREATED
 
-        val userInfo = await(sessionRepo.store.getSession("session-test-session-id"))
+        val userInfo = await(sessionRepo.getSession(s"session-$uuid"))
         userInfo.get.data("contextId") mustBe "testData"
 
         afterITest()
@@ -39,7 +39,7 @@ class CacheDataISpec extends CJWWIntegrationUtils {
 
     "return a forbidden" when {
       "the request is not authorised" in {
-        val result = await(client(s"$baseUrl/session/session-test-session-id/cache").post(""))
+        val result = await(client(s"$baseUrl/session/session-$uuid/cache").post(""))
         result.status mustBe FORBIDDEN
       }
     }

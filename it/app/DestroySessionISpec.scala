@@ -24,7 +24,7 @@ class DestroySessionISpec extends CJWWIntegrationUtils {
       "the session has been removed" in {
         beforeITest()
 
-        val request = client(s"$baseUrl/session/session-test-session-id/destroy")
+        val request = client(s"$baseUrl/session/session-$uuid/destroy")
           .withHeaders(
             "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
             CONTENT_TYPE -> TEXT
@@ -34,13 +34,13 @@ class DestroySessionISpec extends CJWWIntegrationUtils {
 
         result.status mustBe OK
 
-        await(sessionRepo.store.getSession("session-test-session-id")) mustBe None
+        await(sessionRepo.getSession(s"session-$uuid")) mustBe None
       }
     }
 
     "return forbidden" when {
       "the session cannot be found" in {
-        val request = client(s"$baseUrl/session/session-test-session-id/destroy")
+        val request = client(s"$baseUrl/session/session-$uuid/destroy")
           .withHeaders(
             CONTENT_TYPE -> TEXT,
             "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130"
@@ -52,7 +52,7 @@ class DestroySessionISpec extends CJWWIntegrationUtils {
       }
 
       "the request is not authorised" in {
-        val request = client(s"$baseUrl/session/session-test-session-id/destroy")
+        val request = client(s"$baseUrl/session/session-$uuid/destroy")
           .withHeaders(
             CONTENT_TYPE -> TEXT
           )

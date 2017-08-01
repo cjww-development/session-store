@@ -26,9 +26,9 @@ class UpdateSessionISpec extends CJWWIntegrationUtils {
       "the session has been updated" in {
         beforeITest()
 
-        val enc = DataSecurity.encryptType[UpdateSet](UpdateSet("testKey", "SomeData")).get
+        val enc = DataSecurity.encryptType[UpdateSet](UpdateSet("testKey", "SomeData"))
 
-        val request = client(s"$baseUrl/session/session-test-session-id")
+        val request = client(s"$baseUrl/session/session-$uuid")
           .withHeaders(
             CONTENT_TYPE -> TEXT,
             "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130"
@@ -40,7 +40,7 @@ class UpdateSessionISpec extends CJWWIntegrationUtils {
 
         result.status mustBe OK
 
-        await(sessionRepo.store.getData("session-test-session-id", "testKey")) mustBe "SomeData"
+        await(sessionRepo.getData(s"session-$uuid", "testKey")) mustBe "SomeData"
 
         afterITest()
       }
@@ -48,9 +48,9 @@ class UpdateSessionISpec extends CJWWIntegrationUtils {
 
     "return a forbidden" when {
       "the requested session cannot be found" in {
-        val enc = DataSecurity.encryptType[UpdateSet](UpdateSet("testKey", "SomeData")).get
+        val enc = DataSecurity.encryptType[UpdateSet](UpdateSet("testKey", "SomeData"))
 
-        val request = client(s"$baseUrl/session/session-test-session-id")
+        val request = client(s"$baseUrl/session/session-$uuid")
           .withHeaders(
             CONTENT_TYPE -> TEXT,
             "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130"
@@ -64,9 +64,9 @@ class UpdateSessionISpec extends CJWWIntegrationUtils {
       }
 
       "the request is not authorised" in {
-        val enc = DataSecurity.encryptType[UpdateSet](UpdateSet("testKey", "SomeData")).get
+        val enc = DataSecurity.encryptType[UpdateSet](UpdateSet("testKey", "SomeData"))
 
-        val request = client(s"$baseUrl/session/session-test-session-id")
+        val request = client(s"$baseUrl/session/session-$uuid")
           .withHeaders(
             CONTENT_TYPE -> TEXT
           )

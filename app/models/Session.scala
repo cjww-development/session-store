@@ -26,8 +26,8 @@ case class SessionTimestamps(created: DateTime, lastModified: DateTime)
 object SessionTimestamps extends JsonFormats[SessionTimestamps] {
   implicit val standardFormat: OFormat[SessionTimestamps] = (
     (__ \ "created").format(dateTimeRead)(dateTimeWrite) and
-      (__ \ "lastModified").format(dateTimeRead)(dateTimeWrite)
-    )(SessionTimestamps.apply, unlift(SessionTimestamps.unapply))
+    (__ \ "lastModified").format(dateTimeRead)(dateTimeWrite)
+  )(SessionTimestamps.apply, unlift(SessionTimestamps.unapply))
 }
 
 

@@ -16,9 +16,11 @@
 
 package controllers
 
+import java.util.UUID
+
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.cjwwdev.bootstrap.config.BaseConfiguration
+import com.cjwwdev.config.BaseConfiguration
 import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
 import com.cjwwdev.security.encryption.DataSecurity
 import config.SessionKeyNotFoundException
@@ -46,6 +48,8 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
 
   val mockSessionService = mock[SessionService]
 
+  val uuid = UUID.randomUUID
+
   val testSession = Session(
     sessionId         = "test-session-id",
     data              = Map("testKey" -> "testData"),
@@ -69,7 +73,7 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
         when(mockSessionService.cacheData(ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(true))
 
-        val result = testController.cache("test-session-id")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
+        val result = testController.cache(s"session-$uuid")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
         status(result.run()) mustBe CREATED
       }
     }
@@ -79,14 +83,14 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
         when(mockSessionService.cacheData(ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(false))
 
-        val result = testController.cache("test-session-id")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
+        val result = testController.cache(s"session-$uuid")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
         status(result.run()) mustBe INTERNAL_SERVER_ERROR
       }
     }
 
     "return a forbidden" when {
       "there is no appId in the headers" in new Setup {
-        val result = testController.cache("test-session-id")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
+        val result = testController.cache(s"session-$uuid")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
         status(result.run()) mustBe FORBIDDEN
       }
     }
@@ -98,7 +102,7 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
         when(mockSessionService.getByKey(ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
           .thenReturn(Future.successful("testData"))
 
-        val result = testController.getEntry("test-session-id", "test-key")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
+        val result = testController.getEntry(s"session-$uuid", "test-key")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
         status(result) mustBe OK
       }
     }
@@ -108,14 +112,14 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
         when(mockSessionService.getByKey(ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
           .thenReturn(Future.failed(new SessionKeyNotFoundException("test message")))
 
-        val result = testController.getEntry("test-session-id", "test-key")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
+        val result = testController.getEntry(s"session-$uuid", "test-key")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
         status(result) mustBe NOT_FOUND
       }
     }
 
     "return a forbidden" when {
       "there is no appId in the headers" in new Setup {
-        val result = testController.getEntry("test-session-id", "test-key")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
+        val result = testController.getEntry(s"session-$uuid", "test-key")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
         status(result) mustBe FORBIDDEN
       }
     }
@@ -127,9 +131,9 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
         when(mockSessionService.updateDataKey(ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(MongoSuccessUpdate))
 
-        val result = testController.updateSession("test-session-id")(FakeRequest()
+        val result = testController.updateSession(s"session-$uuid")(FakeRequest()
           .withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID)
-          .withBody(DataSecurity.encryptType(UpdateSet("testKey","testData")).get)
+          .withBody(DataSecurity.encryptType(UpdateSet("testKey","testData")))
         )
         status(result) mustBe OK
       }
@@ -140,9 +144,9 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
         when(mockSessionService.updateDataKey(ArgumentMatchers.any(), ArgumentMatchers.any()))
           .thenReturn(Future.successful(MongoFailedUpdate))
 
-        val result = testController.updateSession("test-session-id")(FakeRequest()
+        val result = testController.updateSession(s"session-$uuid")(FakeRequest()
           .withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID)
-          .withBody(DataSecurity.encryptType(UpdateSet("testKey","testData")).get)
+          .withBody(DataSecurity.encryptType(UpdateSet("testKey","testData")))
         )
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
@@ -150,7 +154,7 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
 
     "return a forbidden" when {
       "there is no appId in the headers" in new Setup {
-        val result = testController.updateSession("test-session-id")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
+        val result = testController.updateSession(s"session-$uuid")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
         status(result.run()) mustBe FORBIDDEN
       }
     }
@@ -162,7 +166,7 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
         when(mockSessionService.destroySessionRecord(ArgumentMatchers.any()))
           .thenReturn(Future.successful(true))
 
-        val result = testController.destroy("test-session-id")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
+        val result = testController.destroy(s"session-$uuid")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
         status(result) mustBe OK
       }
     }
@@ -172,14 +176,14 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
         when(mockSessionService.destroySessionRecord(ArgumentMatchers.any()))
           .thenReturn(Future.successful(false))
 
-        val result = testController.destroy("test-session-id")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
+        val result = testController.destroy(s"session-$uuid")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT, "appId" -> AUTH_SERVICE_ID))
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
     }
 
     "return a forbidden" when {
       "there is no appId in the header" in new Setup {
-        val result = testController.destroy("test-session-id")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
+        val result = testController.destroy(s"session-$uuid")(FakeRequest().withHeaders(CONTENT_TYPE -> TEXT))
         status(result) mustBe FORBIDDEN
       }
     }

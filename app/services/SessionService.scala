@@ -21,7 +21,7 @@ import javax.inject.{Inject, Singleton}
 import com.cjwwdev.reactivemongo._
 import models.{Session, UpdateSet}
 import play.api.libs.json.OFormat
-import repositories.{SessionRepo, SessionRepository}
+import repositories.SessionRepository
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -29,25 +29,23 @@ import scala.concurrent.ExecutionContext.Implicits.global
 @Singleton
 class SessionService @Inject()(sessionRepo: SessionRepository) {
 
-  val store: SessionRepo = sessionRepo.store
-
   def cacheData(sessionID: String, data: String): Future[Boolean] = {
-    store.cacheData(sessionID, data) map {
+    sessionRepo.cacheData(sessionID, data) map {
       case MongoSuccessCreate   => true
       case MongoFailedCreate    => false
     }
   }
 
   def getByKey(sessionID : String, key : String)(implicit format : OFormat[Session]) : Future[String] = {
-    store.getData(sessionID, key)
+    sessionRepo.getData(sessionID, key)
   }
 
   def updateDataKey(sessionID : String, updateSet: UpdateSet): Future[MongoUpdatedResponse] = {
-    store.updateSession(sessionID, updateSet)
+    sessionRepo.updateSession(sessionID, updateSet)
   }
 
   def destroySessionRecord(sessionID : String) : Future[Boolean] = {
-    store.removeSession(sessionID) map {
+    sessionRepo.removeSession(sessionID) map {
       case MongoSuccessDelete   => true
       case MongoFailedDelete    => false
     }

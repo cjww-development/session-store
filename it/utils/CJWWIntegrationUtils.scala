@@ -15,9 +15,11 @@
 // limitations under the License.
 package utils
 
+import java.util.UUID
+
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.libs.ws.{WS, WSRequest}
+import play.api.libs.ws.{WS, WSClient, WSRequest}
 import repositories.SessionRepository
 
 import scala.concurrent.{Await, Awaitable}
@@ -27,17 +29,17 @@ trait CJWWIntegrationUtils extends PlaySpec with GuiceOneServerPerSuite {
 
   val sessionRepo: SessionRepository = new SessionRepository
 
+  val uuid = UUID.randomUUID
+
   val baseUrl = s"http://localhost:$port/session-store"
 
-  def client(url: String): WSRequest = WS.url(url)
+  lazy val ws = app.injector.instanceOf(classOf[WSClient])
+
+  def client(url: String): WSRequest = ws.url(url)
 
   def await[T](awaitable: Awaitable[T]): T = Await.result(awaitable, 5.seconds)
 
-  def beforeITest(): Unit = {
-    await(sessionRepo.store.cacheData("session-test-session-id", "testData"))
-  }
+  def beforeITest(): Unit = await(sessionRepo.cacheData(s"session-$uuid", "testData"))
 
-  def afterITest(): Unit = {
-    await(sessionRepo.store.removeSession("session-test-session-id"))
-  }
+  def afterITest(): Unit = await(sessionRepo.removeSession(s"session-$uuid"))
 }

@@ -18,8 +18,7 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 
-import com.cjwwdev.auth.actions.{Authorised, BaseAuth, NotAuthorised}
-import com.cjwwdev.logging.Logger
+import com.cjwwdev.auth.actions.BaseAuth
 import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
 import com.cjwwdev.security.encryption.DataSecurity
 import play.api.mvc.{Action, AnyContent}
@@ -28,7 +27,6 @@ import models.UpdateSet
 import play.api.libs.json.{JsValue, Json}
 import services.SessionService
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
@@ -37,56 +35,48 @@ class SessionController @Inject()(sessionService: SessionService) extends BackCo
   def cache(sessionId: String) : Action[String] = Action.async(parse.text) {
     implicit request =>
       openActionVerification {
-        case Authorised =>
-          sessionService.cacheData(sessionId, request.body) map { cached =>
-            if(cached) Created else InternalServerError
-          }
-        case NotAuthorised => Future.successful(Forbidden)
+        sessionService.cacheData(sessionId, request.body) map { cached =>
+          if(cached) Created else InternalServerError
+        }
       }
   }
 
   def getEntry(sessionId: String, key: String) : Action[AnyContent] = Action.async {
     implicit request =>
       openActionVerification {
-        case Authorised =>
-          validateSession(sessionId) { session =>
-            sessionService.getByKey(session.sessionId, key) map {
-              data => Ok(DataSecurity.encryptType[JsValue](Json.parse(s"""{"data" : "$data"}""")).get)
-            } recover {
-              case _: SessionKeyNotFoundException => NotFound
-              case _: MissingSessionException     => Forbidden
-            }
+        validateSession(sessionId) { session =>
+          sessionService.getByKey(session.sessionId, key) map {
+            data => Ok(DataSecurity.encryptType[JsValue](Json.parse(s"""{"data" : "$data"}""")))
+          } recover {
+            case _: SessionKeyNotFoundException => NotFound
+            case _: MissingSessionException     => Forbidden
           }
-        case NotAuthorised => Future.successful(Forbidden)
+        }
       }
   }
 
   def updateSession(sessionId: String) : Action[String] = Action.async(parse.text) {
     implicit request =>
       openActionVerification {
-        case Authorised =>
         validateSession(sessionId) { session =>
-            decryptRequest[UpdateSet](UpdateSet.standardFormat) { updateData =>
-              sessionService.updateDataKey(session.sessionId, updateData) map {
-                case MongoSuccessUpdate => Ok
-                case MongoFailedUpdate => InternalServerError
-              }
+          decryptRequest[UpdateSet](UpdateSet.standardFormat) { updateData =>
+            sessionService.updateDataKey(session.sessionId, updateData) map {
+              case MongoSuccessUpdate => Ok
+              case MongoFailedUpdate => InternalServerError
             }
           }
-        case NotAuthorised => Future.successful(Forbidden)
+        }
       }
   }
 
   def destroy(sessionId: String) : Action[AnyContent] = Action.async {
     implicit request =>
       openActionVerification {
-        case Authorised =>
-          validateSession(sessionId) { session =>
-            sessionService.destroySessionRecord(session.sessionId) map { destroyed =>
-              if(destroyed) Ok else InternalServerError
-            }
+        validateSession(sessionId) { session =>
+          sessionService.destroySessionRecord(session.sessionId) map { destroyed =>
+            if(destroyed) Ok else InternalServerError
           }
-        case NotAuthorised => Future.successful(Forbidden)
+        }
       }
   }
 }

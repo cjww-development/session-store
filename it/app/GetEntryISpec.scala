@@ -22,12 +22,12 @@ import play.api.test.Helpers._
 
 class GetEntryISpec extends CJWWIntegrationUtils {
 
-  "/session/{session-test-session-id}/data/{userInfo}" should {
+  s"/session/session-$uuid/data/{userInfo}" should {
     "return an Ok with body" when {
       "data has been found with the key" in {
         beforeITest()
 
-        val request = client(s"$baseUrl/session/session-test-session-id/data/contextId")
+        val request = client(s"$baseUrl/session/session-$uuid/data/contextId")
           .withHeaders(
             "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
             CONTENT_TYPE -> TEXT
@@ -36,7 +36,7 @@ class GetEntryISpec extends CJWWIntegrationUtils {
 
         val result = await(request)
         result.status mustBe OK
-        result.body mustBe DataSecurity.encryptType[JsValue](Json.parse("""{"data":"testData"}""")).get
+        result.body mustBe DataSecurity.encryptType[JsValue](Json.parse("""{"data":"testData"}"""))
 
         afterITest()
       }
@@ -46,7 +46,7 @@ class GetEntryISpec extends CJWWIntegrationUtils {
       "no data has been found against the key" in {
         beforeITest()
 
-        val request = client(s"$baseUrl/session/session-test-session-id/data/invalid-key")
+        val request = client(s"$baseUrl/session/session-$uuid/data/invalid-key")
           .withHeaders(
             "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
             CONTENT_TYPE -> TEXT
@@ -62,7 +62,7 @@ class GetEntryISpec extends CJWWIntegrationUtils {
 
     "return a Forbidden" when {
       "the request is not authorised" in {
-        val request = client(s"$baseUrl/session/session-test-session-id/data/userInfo")
+        val request = client(s"$baseUrl/session/session-$uuid/data/userInfo")
           .withHeaders(
             CONTENT_TYPE -> TEXT
           )

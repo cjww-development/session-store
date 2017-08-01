@@ -16,27 +16,30 @@
 
 package config
 
-import com.cjwwdev.logging.Logger
+import com.cjwwdev.identifiers.IdentifierValidation
 import com.cjwwdev.request.RequestParsers
 import models.Session
 import org.joda.time.{DateTime, Interval}
 import play.api.libs.json._
 import play.api.mvc.{Controller, Result}
+import play.api.Logger
 import repositories.SessionRepository
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-trait BackController extends Controller with RequestParsers {
+trait BackController extends Controller with RequestParsers with IdentifierValidation {
 
   val sessionRepo = new SessionRepository
 
   protected def validateSession(id: String)(f: Session => Future[Result])(implicit format: OFormat[Session]): Future[Result] = {
-    sessionRepo.store.getSession(id) flatMap {
-      case Some(session) => if(validateTimestamps(session.modifiedDetails.lastModified)) f(session) else Future.successful(Forbidden)
-      case None =>
-        Logger.warn("[BackController] - [validateSession]: Session is invalid, action forbidden")
-        Future.successful(Forbidden)
+    validateAs(SESSION, id) {
+      sessionRepo.getSession(id) flatMap {
+        case Some(session) => if(validateTimestamps(session.modifiedDetails.lastModified)) f(session) else Future.successful(Forbidden)
+        case None =>
+          Logger.warn("[BackController] - [validateSession]: Session is invalid, action forbidden")
+          Future.successful(Forbidden)
+      }
     }
   }
 
