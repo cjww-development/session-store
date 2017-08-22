@@ -16,26 +16,31 @@
 
 package config
 
+import com.cjwwdev.auth.actions.BaseAuth
 import com.cjwwdev.identifiers.IdentifierValidation
 import com.cjwwdev.request.RequestParsers
 import models.Session
 import org.joda.time.{DateTime, Interval}
 import play.api.libs.json._
-import play.api.mvc.{Controller, Result}
+import play.api.mvc.{Controller, Request, Result}
 import play.api.Logger
 import repositories.SessionRepository
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-trait BackController extends Controller with RequestParsers with IdentifierValidation {
+trait BackController extends Controller with RequestParsers with IdentifierValidation with BaseAuth {
 
-  val sessionRepo = new SessionRepository
+  val sessionRepo: SessionRepository
 
-  protected def validateSession(id: String)(f: Session => Future[Result])(implicit format: OFormat[Session]): Future[Result] = {
+  protected def validateSession(id: String)(f: Session => Future[Result])(implicit format: OFormat[Session], request: Request[_]): Future[Result] = {
     validateAs(SESSION, id) {
       sessionRepo.getSession(id) flatMap {
-        case Some(session) => if(validateTimestamps(session.modifiedDetails.lastModified)) f(session) else Future.successful(Forbidden)
+        case Some(session) => if(validateTimestamps(session.modifiedDetails.lastModified)) {
+          f(session)
+        } else {
+          sessionRepo.removeSession(id) map(_ => Forbidden)
+        }
         case None =>
           Logger.warn("[BackController] - [validateSession]: Session is invalid, action forbidden")
           Future.successful(Forbidden)

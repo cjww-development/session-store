@@ -21,13 +21,13 @@ import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+//import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import repositories.SessionRepository
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
-class SessionServiceSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar {
+class SessionServiceSpec extends PlaySpec with MockitoSugar {
 
   val mockRepo = mock[SessionRepository]
 

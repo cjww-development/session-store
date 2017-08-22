@@ -18,30 +18,35 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 
-import com.cjwwdev.auth.actions.BaseAuth
+import com.cjwwdev.config.ConfigurationLoader
 import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
 import com.cjwwdev.security.encryption.DataSecurity
 import play.api.mvc.{Action, AnyContent}
 import config.{BackController, MissingSessionException, SessionKeyNotFoundException}
 import models.UpdateSet
 import play.api.libs.json.{JsValue, Json}
+import repositories.SessionRepository
 import services.SessionService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
-class SessionController @Inject()(sessionService: SessionService) extends BackController with BaseAuth {
+class SessionController @Inject()(sessionService: SessionService,
+                                  val config: ConfigurationLoader,
+                                  override val sessionRepo: SessionRepository) extends BackController {
 
-  def cache(sessionId: String) : Action[String] = Action.async(parse.text) {
+  def cache(sessionId: String): Action[String] = Action.async(parse.text) {
     implicit request =>
       openActionVerification {
-        sessionService.cacheData(sessionId, request.body) map { cached =>
-          if(cached) Created else InternalServerError
+        validateAs(SESSION, sessionId) {
+          sessionService.cacheData(sessionId, request.body) map { cached =>
+            if (cached) Created else InternalServerError
+          }
         }
       }
   }
 
-  def getEntry(sessionId: String, key: String) : Action[AnyContent] = Action.async {
+  def getEntry(sessionId: String, key: String): Action[AnyContent] = Action.async {
     implicit request =>
       openActionVerification {
         validateSession(sessionId) { session =>
@@ -55,11 +60,11 @@ class SessionController @Inject()(sessionService: SessionService) extends BackCo
       }
   }
 
-  def updateSession(sessionId: String) : Action[String] = Action.async(parse.text) {
+  def updateSession(sessionId: String): Action[String] = Action.async(parse.text) {
     implicit request =>
       openActionVerification {
         validateSession(sessionId) { session =>
-          decryptRequest[UpdateSet](UpdateSet.standardFormat) { updateData =>
+          withJsonBody[UpdateSet](UpdateSet.standardFormat) { updateData =>
             sessionService.updateDataKey(session.sessionId, updateData) map {
               case MongoSuccessUpdate => Ok
               case MongoFailedUpdate => InternalServerError
@@ -69,12 +74,12 @@ class SessionController @Inject()(sessionService: SessionService) extends BackCo
       }
   }
 
-  def destroy(sessionId: String) : Action[AnyContent] = Action.async {
+  def destroy(sessionId: String): Action[AnyContent] = Action.async {
     implicit request =>
       openActionVerification {
         validateSession(sessionId) { session =>
           sessionService.destroySessionRecord(session.sessionId) map { destroyed =>
-            if(destroyed) Ok else InternalServerError
+            if (destroyed) Ok else InternalServerError
           }
         }
       }

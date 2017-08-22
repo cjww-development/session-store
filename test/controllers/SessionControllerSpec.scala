@@ -20,35 +20,39 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.cjwwdev.config.BaseConfiguration
+import com.cjwwdev.config.ConfigurationLoader
 import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
 import com.cjwwdev.security.encryption.DataSecurity
 import config.SessionKeyNotFoundException
 import models.{Session, SessionTimestamps, UpdateSet}
 import org.joda.time.DateTime
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
 import org.mockito.Mockito.when
 import org.mockito.ArgumentMatchers
 import play.api.libs.json.OFormat
 import play.api.libs.ws.ahc.AhcWSClient
-import play.api.mvc.Result
+import play.api.mvc.{Request, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import repositories.SessionRepository
 import services.SessionService
 
 import scala.concurrent.Future
 
-class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with MockitoSugar with BaseConfiguration {
+class SessionControllerSpec extends PlaySpec with MockitoSugar {
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
   val ws = AhcWSClient()
 
   val mockSessionService = mock[SessionService]
+  val mockSessionRepo = mock[SessionRepository]
+  val mockConfig = mock[ConfigurationLoader]
 
   val uuid = UUID.randomUUID
+
+  val AUTH_SERVICE_ID = mockConfig.getApplicationId("auth-service")
 
   val testSession = Session(
     sessionId         = "test-session-id",
@@ -60,8 +64,8 @@ class SessionControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Mocki
   )
 
   class Setup {
-    val testController = new SessionController(mockSessionService) {
-      override protected def validateSession(id: String)(f: (Session) => Future[Result])(implicit format: OFormat[Session]): Future[Result] = {
+    val testController = new SessionController(mockSessionService, mockConfig, mockSessionRepo) {
+      override protected def validateSession(id: String)(f: (Session) => Future[Result])(implicit format: OFormat[Session], request: Request[_]) = {
         f(testSession)
       }
     }
