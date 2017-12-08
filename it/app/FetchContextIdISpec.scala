@@ -13,12 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package app
 
-package config
+class FetchContextIdISpec {
 
-class MongoFailedCreateException(msg: String) extends Exception(msg)
-class MongoFailedUpdateException(msg: String) extends Exception(msg)
-class MongoFailedDeleteException(msg: String) extends Exception(msg)
-
-class SessionKeyNotFoundException(msg: String) extends Exception(msg)
-class MissingSessionException(msg: String) extends Exception(msg)
+}

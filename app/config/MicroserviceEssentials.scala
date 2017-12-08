@@ -13,24 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package config
 
-package mocks
+class MicroserviceEssentials {
 
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import reactivemongo.api.commands.{UpdateWriteResult, WriteResult}
-
-trait MongoMocks extends MockitoSugar {
-
-  def mockWriteResult(fails: Boolean = false) : WriteResult = {
-    val m = mock[WriteResult]
-    when(m.ok).thenReturn(!fails)
-    m
-  }
-
-  def mockUpdateWriteResult(fails: Boolean = false) : UpdateWriteResult = {
-    val m = mock[UpdateWriteResult]
-    when(m.ok).thenReturn(!fails)
-    m
-  }
 }
