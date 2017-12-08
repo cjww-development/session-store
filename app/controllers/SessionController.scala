@@ -16,72 +16,81 @@
 
 package controllers
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import com.cjwwdev.config.ConfigurationLoader
 import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
 import com.cjwwdev.security.encryption.DataSecurity
-import play.api.mvc.{Action, AnyContent}
 import config.{BackController, MissingSessionException, SessionKeyNotFoundException}
 import models.UpdateSet
 import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Action, AnyContent}
 import repositories.SessionRepository
 import services.SessionService
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-@Singleton
-class SessionController @Inject()(sessionService: SessionService,
-                                  val config: ConfigurationLoader,
-                                  override val sessionRepo: SessionRepository) extends BackController {
+class SessionControllerImpl @Inject()(val sessionService: SessionService,
+                                      val config: ConfigurationLoader,
+                                      val sessionRepository: SessionRepository) extends SessionController
 
-  def cache(sessionId: String): Action[String] = Action.async(parse.text) {
-    implicit request =>
-      openActionVerification {
-        validateAs(SESSION, sessionId) {
-          sessionService.cacheData(sessionId, request.body) map { cached =>
-            if (cached) Created else InternalServerError
-          }
+trait SessionController extends BackController {
+
+  val sessionService: SessionService
+
+  def cache(sessionId: String): Action[String] = Action.async(parse.text) { implicit request =>
+    openActionVerification {
+      validateAs(SESSION, sessionId) {
+        sessionService.cacheData(sessionId, request.body) map { cached =>
+          if (cached) Created else InternalServerError
         }
       }
+    }
   }
 
-  def getEntry(sessionId: String, key: String): Action[AnyContent] = Action.async {
-    implicit request =>
-      openActionVerification {
-        validateSession(sessionId) { session =>
-          sessionService.getByKey(session.sessionId, key) map {
-            data => Ok(DataSecurity.encryptType[JsValue](Json.parse(s"""{"data" : "$data"}""")))
-          } recover {
-            case _: SessionKeyNotFoundException => NotFound
-            case _: MissingSessionException     => Forbidden
-          }
+  def getEntry(sessionId: String, key: String): Action[AnyContent] = Action.async { implicit request =>
+    openActionVerification {
+      validateSession(sessionId) { session =>
+        sessionService.getByKey(session.sessionId, key) map { data =>
+          Ok(data)
+        } recover {
+          case _: SessionKeyNotFoundException => NotFound
+          case _: MissingSessionException     => Forbidden
         }
       }
+    }
   }
 
-  def updateSession(sessionId: String): Action[String] = Action.async(parse.text) {
-    implicit request =>
-      openActionVerification {
-        validateSession(sessionId) { session =>
-          withJsonBody[UpdateSet](UpdateSet.standardFormat) { updateData =>
-            sessionService.updateDataKey(session.sessionId, updateData) map {
-              case MongoSuccessUpdate => Ok
-              case MongoFailedUpdate => InternalServerError
-            }
+  def updateSession(sessionId: String): Action[String] = Action.async(parse.text) { implicit request =>
+    openActionVerification {
+      validateSession(sessionId) { session =>
+        withJsonBody[UpdateSet](UpdateSet.standardFormat) { updateData =>
+          sessionService.updateDataKey(session.sessionId, updateData) map {
+            case MongoSuccessUpdate => Ok
+            case MongoFailedUpdate  => InternalServerError
           }
         }
       }
+    }
   }
 
-  def destroy(sessionId: String): Action[AnyContent] = Action.async {
-    implicit request =>
-      openActionVerification {
-        validateSession(sessionId) { session =>
-          sessionService.destroySessionRecord(session.sessionId) map { destroyed =>
-            if (destroyed) Ok else InternalServerError
-          }
+  def destroy(sessionId: String): Action[AnyContent] = Action.async { implicit request =>
+    openActionVerification {
+      validateSession(sessionId) { session =>
+        sessionService.destroySessionRecord(session.sessionId) map { destroyed =>
+          if (destroyed) Ok else InternalServerError
         }
       }
+    }
+  }
+
+  def getContextId(sessionId: String): Action[AnyContent] = Action.async { implicit request =>
+    openActionVerification {
+      validateSession(sessionId) { session =>
+        val contextId = DataSecurity.encryptType[JsValue](Json.parse(s"""{"contextId" : "${session.data("contextId")}"}"""))
+        Future.successful(Ok(contextId))
+      }
+    }
   }
 }

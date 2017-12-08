@@ -16,36 +16,46 @@
 
 package services
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
 import com.cjwwdev.reactivemongo._
+import com.cjwwdev.security.encryption.DataSecurity
+import config.{MissingSessionException, SessionKeyNotFoundException}
 import models.{Session, UpdateSet}
-import play.api.libs.json.OFormat
+import play.api.libs.json.{JsValue, Json, OFormat}
+import play.api.mvc.Request
 import repositories.SessionRepository
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-@Singleton
-class SessionService @Inject()(sessionRepo: SessionRepository) {
+class SessionServiceImpl @Inject()(val sessionRepo: SessionRepository) extends SessionService
 
-  def cacheData(sessionID: String, data: String): Future[Boolean] = {
-    sessionRepo.cacheData(sessionID, data) map {
+trait SessionService {
+  val sessionRepo: SessionRepository
+
+  def cacheData(sessionId: String, data: String)(implicit request: Request[_]): Future[Boolean] = {
+    sessionRepo.cacheData(sessionId, data) map {
       case MongoSuccessCreate   => true
       case MongoFailedCreate    => false
     }
   }
 
-  def getByKey(sessionID : String, key : String)(implicit format : OFormat[Session]) : Future[String] = {
-    sessionRepo.getData(sessionID, key)
+  def getByKey(sessionId : String, key : String)(implicit format : OFormat[Session], request: Request[_]) : Future[String] = {
+    sessionRepo.getSession(sessionId) map {
+      _.fold(throw new MissingSessionException(s"No session for sessionId $sessionId")) { session =>
+        val keyValue = session.data.getOrElse(key, throw new SessionKeyNotFoundException(s"No data found for key $key for sessionId $sessionId"))
+        DataSecurity.encryptType[JsValue](Json.parse(s"""{"data" : "$keyValue"}"""))
+      }
+    }
   }
 
-  def updateDataKey(sessionID : String, updateSet: UpdateSet): Future[MongoUpdatedResponse] = {
-    sessionRepo.updateSession(sessionID, updateSet)
+  def updateDataKey(sessionId : String, updateSet: UpdateSet)(implicit request: Request[_]): Future[MongoUpdatedResponse] = {
+    sessionRepo.updateSession(sessionId, updateSet)
   }
 
-  def destroySessionRecord(sessionID : String) : Future[Boolean] = {
-    sessionRepo.removeSession(sessionID) map {
+  def destroySessionRecord(sessionId : String)(implicit request: Request[_]): Future[Boolean] = {
+    sessionRepo.removeSession(sessionId) map {
       case MongoSuccessDelete   => true
       case MongoFailedDelete    => false
     }

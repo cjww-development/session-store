@@ -31,7 +31,8 @@ class UpdateSessionISpec extends CJWWIntegrationUtils {
         val request = client(s"$baseUrl/session/session-$uuid")
           .withHeaders(
             CONTENT_TYPE -> TEXT,
-            "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130"
+            "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
+            "cookieId" -> s"session-$uuid"
           )
           .withBody(enc)
           .put(enc)
@@ -40,7 +41,7 @@ class UpdateSessionISpec extends CJWWIntegrationUtils {
 
         result.status mustBe OK
 
-        await(sessionRepo.getData(s"session-$uuid", "testKey")) mustBe "SomeData"
+        await(sessionRepo.getSession(s"session-$uuid")).get.data("testKey") mustBe "SomeData"
 
         afterITest()
       }

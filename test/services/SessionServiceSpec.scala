@@ -15,26 +15,49 @@
 // limitations under the License.
 package services
 
+import java.util.UUID
+
 import com.cjwwdev.reactivemongo._
-import models.UpdateSet
-import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.PlaySpec
+import com.cjwwdev.security.encryption.DataSecurity
+import com.cjwwdev.test.CJWWSpec
+import models.{Session, SessionTimestamps, UpdateSet}
+import org.joda.time.DateTime
+import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers
-//import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.libs.json.{JsValue, Json}
+import play.api.test.FakeRequest
 import repositories.SessionRepository
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
-class SessionServiceSpec extends PlaySpec with MockitoSugar {
+class SessionServiceSpec extends CJWWSpec {
 
   val mockRepo = mock[SessionRepository]
 
   val testUpdateSet = UpdateSet("userInfo","testData")
 
+  val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
+  val dateTime: DateTime = dateFormat.parseDateTime("2017-04-13 19:59:14")
+
+  val testSession = Session(
+    sessionId = "testSessionId",
+    data = Map("testKey" -> "testData"),
+    modifiedDetails = SessionTimestamps(
+      created = dateTime,
+      lastModified = dateTime
+    )
+  )
+
+  val uuid = UUID.randomUUID()
+
   class Setup {
-    val testService = new SessionService(mockRepo)
+    val testService = new SessionService {
+      override val sessionRepo = mockRepo
+    }
+
+    implicit val request = FakeRequest().withHeaders("cookieId" -> s"session-$uuid")
   }
 
   "cacheData" should {
@@ -57,11 +80,11 @@ class SessionServiceSpec extends PlaySpec with MockitoSugar {
 
   "getByKey" should {
     "return an optional string" in new Setup {
-      when(mockRepo.getData(ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
-        .thenReturn(Future.successful("testData"))
+      when(mockRepo.getSession(ArgumentMatchers.any())(ArgumentMatchers.any()))
+        .thenReturn(Future.successful(Some(testSession)))
 
-      val result = Await.result(testService.getByKey("sessionID", "testKey"), 5.seconds)
-      result mustBe "testData"
+      val result = Await.result(testService.getByKey("testSessionId", "testKey"), 5.seconds)
+      result mustBe DataSecurity.encryptType[JsValue](Json.parse(s"""{"data" : "testData"}"""))
     }
   }
 

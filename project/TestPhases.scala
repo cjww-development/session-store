@@ -14,6 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-class TestPhases {
+import sbt.Tests.{Group, SubProcess}
+import sbt._
 
+object TestPhases {
+  def oneForkedJvmPerTest(tests: Seq[TestDefinition]): Seq[Group] = tests map {
+    test => Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq("-Dtest.name=" + test.name))))
+  }
 }

@@ -15,6 +15,29 @@
 // limitations under the License.
 package app
 
-class FetchContextIdISpec {
+import com.cjwwdev.security.encryption.DataSecurity
+import play.api.libs.json.JsValue
+import play.api.test.Helpers._
+import utils.CJWWIntegrationUtils
 
+class FetchContextIdISpec extends CJWWIntegrationUtils {
+  "/session/:sessionId/context" should {
+    "return an OK" when {
+      "the context id has been retrieved" in {
+        beforeITest()
+
+        val request = await(client(s"$baseUrl/session/session-$uuid/context")
+          .withHeaders(
+            "appId"      -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
+            CONTENT_TYPE -> TEXT,
+            "cookieId"   -> s"session-$uuid"
+          ).get())
+
+        request.status mustBe OK
+        DataSecurity.decryptIntoType[JsValue](request.body).get.\("contextId").as[String] mustBe "testData"
+
+        afterITest()
+      }
+    }
+  }
 }

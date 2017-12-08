@@ -14,6 +14,55 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-object AppDependencies {
+import sbt._
 
+object AppDependencies {
+  def apply(): Seq[ModuleID] = CompileDependencies() ++ UnitTestDependencies() ++ IntegrationTestDependencies()
+}
+
+object CompileDependencies {
+  private val dataSecurityVersion  = "2.10.0"
+  private val reactiveMongoVersion = "5.2.0"
+  private val backendAuthVersion   = "2.13.0"
+  private val appUtilsVersion      = "2.8.0"
+  private val metricsVersion       = "0.7.0"
+
+  val appDependencies: Seq[ModuleID] = Seq(
+    "com.cjww-dev.libs" % "data-security_2.11"         % dataSecurityVersion,
+    "com.cjww-dev.libs" % "reactive-mongo_2.11"        % reactiveMongoVersion,
+    "com.cjww-dev.libs" % "backend-auth_2.11"          % backendAuthVersion,
+    "com.cjww-dev.libs" % "application-utilities_2.11" % appUtilsVersion,
+    "com.cjww-dev.libs" % "metrics-reporter_2.11"      % metricsVersion
+  )
+
+  def apply(): Seq[ModuleID] = appDependencies
+}
+
+trait CommonTestDependencies {
+  protected val scalaTestPlusPlayVersion = "2.0.1"
+  protected val mockitoCoreVersion       = "2.12.0"
+  protected val testFrameworkVersion     = "0.1.0"
+
+  val scope: Configuration
+  val testDependencies: Seq[ModuleID]
+}
+
+object UnitTestDependencies extends CommonTestDependencies {
+  override val scope: Configuration = Test
+  
+  override val testDependencies: Seq[ModuleID] = Seq(
+    "com.cjww-dev.libs" % "testing-framework_2.11" % testFrameworkVersion % scope
+  )
+
+  def apply(): Seq[ModuleID] = testDependencies
+}
+
+object IntegrationTestDependencies extends CommonTestDependencies {
+  override val scope: Configuration = IntegrationTest
+
+  override val testDependencies: Seq[ModuleID] = Seq(
+    "com.cjww-dev.libs" % "testing-framework_2.11" % testFrameworkVersion % scope
+  )
+
+  def apply(): Seq[ModuleID] = testDependencies
 }

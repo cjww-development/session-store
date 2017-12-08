@@ -15,21 +15,30 @@
 // limitations under the License.
 package utils
 
-import java.util.UUID
-
+import com.cjwwdev.test.data.TestDataGenerator
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.libs.ws.{WS, WSClient, WSRequest}
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.ws.{WSClient, WSRequest}
+import play.api.test.FakeRequest
 import repositories.SessionRepository
 
-import scala.concurrent.{Await, Awaitable}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Awaitable}
 
-trait CJWWIntegrationUtils extends PlaySpec with GuiceOneServerPerSuite {
+trait CJWWIntegrationUtils extends PlaySpec with GuiceOneServerPerSuite with TestDataGenerator {
 
-  val sessionRepo: SessionRepository = new SessionRepository
+  val additionalConfiguration = Map(
+    "repositories.SessionRepositoryImpl.database"   -> "test-session-db",
+    "repositories.SessionRepositoryImpl.collection" -> "test-session-collection"
+  )
 
-  val uuid = UUID.randomUUID
+  override implicit lazy val app: Application = new GuiceApplicationBuilder()
+    .configure(additionalConfiguration)
+    .build()
+
+  val sessionRepo: SessionRepository = app.injector.instanceOf(classOf[SessionRepository])
 
   val baseUrl = s"http://localhost:$port/session-store"
 
@@ -38,6 +47,8 @@ trait CJWWIntegrationUtils extends PlaySpec with GuiceOneServerPerSuite {
   def client(url: String): WSRequest = ws.url(url)
 
   def await[T](awaitable: Awaitable[T]): T = Await.result(awaitable, 5.seconds)
+
+  private val request = FakeRequest()
 
   def beforeITest(): Unit = await(sessionRepo.cacheData(s"session-$uuid", "testData"))
 

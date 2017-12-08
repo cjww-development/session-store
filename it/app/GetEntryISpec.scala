@@ -30,9 +30,9 @@ class GetEntryISpec extends CJWWIntegrationUtils {
         val request = client(s"$baseUrl/session/session-$uuid/data/contextId")
           .withHeaders(
             "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
-            CONTENT_TYPE -> TEXT
-          )
-          .get()
+            CONTENT_TYPE -> TEXT,
+            "cookieId" -> s"session-$uuid"
+          ).get()
 
         val result = await(request)
         result.status mustBe OK
@@ -49,9 +49,9 @@ class GetEntryISpec extends CJWWIntegrationUtils {
         val request = client(s"$baseUrl/session/session-$uuid/data/invalid-key")
           .withHeaders(
             "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
-            CONTENT_TYPE -> TEXT
-          )
-          .get()
+            CONTENT_TYPE -> TEXT,
+            "cookieId" -> s"session-$uuid"
+          ).get()
 
         val result = await(request)
         result.status mustBe NOT_FOUND
@@ -63,9 +63,7 @@ class GetEntryISpec extends CJWWIntegrationUtils {
     "return a Forbidden" when {
       "the request is not authorised" in {
         val request = client(s"$baseUrl/session/session-$uuid/data/userInfo")
-          .withHeaders(
-            CONTENT_TYPE -> TEXT
-          )
+          .withHeaders(CONTENT_TYPE -> TEXT)
           .get()
 
         val result = await(request)

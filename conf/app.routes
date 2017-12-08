@@ -2,7 +2,8 @@
 # This file defines all application app.routes (Higher priority app.routes first)
 # ~~~~
 
-POST    /session/:sessionId/cache               controllers.SessionController.cache(sessionId: String)
-GET     /session/:sessionId/data/:key           controllers.SessionController.getEntry(sessionId: String, key: String)
-PUT     /session/:sessionId                     controllers.SessionController.updateSession(sessionId: String)
-DELETE  /session/:sessionId/destroy             controllers.SessionController.destroy(sessionId: String)
+POST    /session/:sessionId/cache               controllers.SessionController.cache(sessionId)
+GET     /session/:sessionId/data/:key           controllers.SessionController.getEntry(sessionId, key)
+PUT     /session/:sessionId                     controllers.SessionController.updateSession(sessionId)
+DELETE  /session/:sessionId/destroy             controllers.SessionController.destroy(sessionId)
+GET     /session/:sessionId/context             controllers.SessionController.getContextId(sessionId)

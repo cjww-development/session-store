@@ -15,6 +15,8 @@
 // limitations under the License.
 package app
 
+import java.util.UUID
+
 import utils.CJWWIntegrationUtils
 import play.api.test.Helpers._
 
@@ -26,8 +28,9 @@ class DestroySessionISpec extends CJWWIntegrationUtils {
 
         val request = client(s"$baseUrl/session/session-$uuid/destroy")
           .withHeaders(
-            "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
-            CONTENT_TYPE -> TEXT
+            "appId"      -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
+            CONTENT_TYPE -> TEXT,
+            "cookieId"   -> s"session-$uuid"
           )
           .delete()
         val result = await(request)
@@ -44,6 +47,19 @@ class DestroySessionISpec extends CJWWIntegrationUtils {
           .withHeaders(
             CONTENT_TYPE -> TEXT,
             "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130"
+          )
+          .delete()
+        val result = await(request)
+
+        result.status mustBe FORBIDDEN
+      }
+
+      "the sessionId in the url and header don't match" in {
+        val request = client(s"$baseUrl/session/session-$uuid/destroy")
+          .withHeaders(
+            CONTENT_TYPE -> TEXT,
+            "appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
+            "cookieId"   -> s"session-${UUID.randomUUID}"
           )
           .delete()
         val result = await(request)

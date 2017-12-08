@@ -16,27 +16,26 @@
 
 package repositories
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 
+import com.cjwwdev.config.ConfigurationLoader
 import com.cjwwdev.reactivemongo._
-import config.{MissingSessionException, SessionKeyNotFoundException}
 import models.{Session, SessionTimestamps, UpdateSet}
-import play.api.libs.json.OFormat
-import play.api.Logger
+import play.api.libs.json.{JsValue, OFormat}
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.play.json._
 import reactivemongo.bson.BSONDocument
+import reactivemongo.play.json._
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-@Singleton
-class SessionRepository @Inject()() extends MongoDatabase("session-cache") {
+class SessionRepositoryImpl @Inject()(val configLoader: ConfigurationLoader) extends SessionRepository
 
+trait SessionRepository extends MongoDatabase {
   override def indexes: Seq[Index] = Seq(
     Index(
-      key = Seq("sessionId" -> IndexType.Ascending),
-      name = Some("SessionId"),
+      key    = Seq("sessionId" -> IndexType.Ascending),
+      name   = Some("SessionId"),
       unique = true,
       sparse = false
     )
@@ -54,66 +53,61 @@ class SessionRepository @Inject()() extends MongoDatabase("session-cache") {
   )
 
   private def buildNewSession(sessionId: String, contextId: String) = Session(
-    sessionId = sessionId,
-    data = Map("contextId" -> contextId),
+    sessionId       = sessionId,
+    data            = Map("contextId" -> contextId),
     modifiedDetails = SessionTimestamps(Session.getDateTime, Session.getDateTime)
   )
 
-  def cacheData(sessionId : String, data : String) : Future[MongoCreateResponse] = {
-    collection flatMap { collect =>
-      collect.insert(buildNewSession(sessionId, data)) map { wr =>
-        if(wr.ok) {
-          Logger.info(s"[SessionRepository] - [cacheData] : Data was successfully created in ${collect.name}")
-          MongoSuccessCreate
-        } else {
-          Logger.error(s"[SessionRepository] - [cacheData] : There was a problem inserting data into ${collect.name}]")
-          MongoFailedCreate
-        }
-      }
-    }
-  }
-
-  def getData(sessionId : String, key : String)(implicit format: OFormat[Session]) : Future[String] = {
-    collection flatMap {
-      _.find(sessionIdSelector(sessionId)).one[Session] map {
-        case Some(session) => session.data.get(key) match {
-          case Some(pair) => pair
-          case None => throw new SessionKeyNotFoundException(s"Data for key $key could not be found in session for $sessionId")
-        }
-        case None => throw new MissingSessionException(s"No session found for session id $sessionId")
-      }
+  def cacheData(sessionId : String, data : String): Future[MongoCreateResponse] = {
+    for {
+      col <- collection
+      res <- col.insert(buildNewSession(sessionId, data))
+    } yield if(res.ok) {
+      logger.info(s"[cacheData] : Data was successfully created in ${col.name} for sessionId $sessionId")
+      MongoSuccessCreate
+    } else {
+      logger.error(s"[cacheData] : There was a problem inserting data into ${col.name} for sessionId $sessionId")
+      MongoFailedCreate
     }
   }
 
   def getSession(sessionId: String)(implicit format: OFormat[Session]): Future[Option[Session]] = {
-    collection.flatMap(_.find(sessionIdSelector(sessionId)).one[Session])
+    for {
+      col <- collection
+      res <- col.find(sessionIdSelector(sessionId)).one[Session]
+    } yield res
   }
 
   def updateSession(sessionId: String, updateSet: UpdateSet)(implicit format: OFormat[Session]): Future[MongoUpdatedResponse] = {
-    collection flatMap {
-      _.update(sessionIdSelector(sessionId), buildUpdateDocument(updateSet)) map { wr =>
-        if(wr.ok) {
-          Logger.info(s"[SessionRepository] - [updateSession] : Successfully updated session for session id $sessionId")
-          MongoSuccessUpdate
-        } else {
-          Logger.error(s"[SessionRepository] - [updateSession] : There was a problem updating session for session id $sessionId")
-          MongoFailedUpdate
-        }
-      }
+    for {
+      col <- collection
+      res <- col.update(sessionIdSelector(sessionId), buildUpdateDocument(updateSet))
+    } yield if(res.ok) {
+      logger.info(s"[updateSession] : Successfully updated session for session id $sessionId")
+      MongoSuccessUpdate
+    } else {
+      logger.error(s"[updateSession] : There was a problem updating session for session id $sessionId")
+      MongoFailedUpdate
     }
   }
 
   def removeSession(sessionId: String): Future[MongoDeleteResponse] = {
-    collection flatMap {
-      _.remove(sessionIdSelector(sessionId)) map { writeResult =>
-        if (writeResult.ok) {
-          Logger.info(s"[SessionRepository] - [removeSession] : Successfully removed session $sessionId")
-          MongoSuccessDelete
-        } else {
-          Logger.error(s"[SessionRepository] - [removeSession] : There was a problem deleting session $sessionId")
-          MongoFailedDelete
-        }
-      }
+    for {
+      col <- collection
+      res <- col.remove(sessionIdSelector(sessionId))
+    } yield if(res.ok) {
+      logger.info(s"[removeSession] : Successfully removed session $sessionId")
+      MongoSuccessDelete
+    } else {
+      logger.error(s"[removeSession] : There was a problem deleting session $sessionId")
+      MongoFailedDelete
     }
+  }
+
+  def validateSession(sessionId: String): Future[Boolean] = {
+    for {
+      col     <- collection
+      session <- col.find[BSONDocument, BSONDocument](BSONDocument("sessionId" -> sessionId), BSONDocument("sessionId" -> 1, "_id" -> 0)).one[JsValue]
+    } yield session.nonEmpty
   }
 }
