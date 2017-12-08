@@ -21,7 +21,7 @@ import controllers.{SessionController, SessionControllerImpl}
 import repositories.{SessionRepository, SessionRepositoryImpl}
 import services.{SessionService, SessionServiceImpl}
 
-class Module extends AbstractModule {
+class ServiceBindings extends AbstractModule {
   override def configure(): Unit = {
     bind(classOf[SessionRepository]).to(classOf[SessionRepositoryImpl]).asEagerSingleton()
     bind(classOf[SessionService]).to(classOf[SessionServiceImpl]).asEagerSingleton()
