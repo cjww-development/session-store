@@ -32,7 +32,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class SessionControllerImpl @Inject()(val sessionService: SessionService,
-                                      val config: ConfigurationLoader,
                                       val sessionRepository: SessionRepository) extends SessionController
 
 trait SessionController extends BackController {
