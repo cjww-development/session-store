@@ -29,7 +29,7 @@ import reactivemongo.play.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class SessionRepositoryImpl @Inject extends SessionRepository
+class SessionRepositoryImpl @Inject()(val configurationLoader: ConfigurationLoader) extends SessionRepository
 
 trait SessionRepository extends MongoDatabase {
   override def indexes: Seq[Index] = Seq(

@@ -16,6 +16,7 @@
 
 package config
 
+import com.cjwwdev.config.{ConfigurationLoader, ConfigurationLoaderImpl}
 import com.google.inject.AbstractModule
 import controllers.{SessionController, SessionControllerImpl}
 import repositories.{SessionRepository, SessionRepositoryImpl}
@@ -23,6 +24,7 @@ import services.{SessionService, SessionServiceImpl}
 
 class ServiceBindings extends AbstractModule {
   override def configure(): Unit = {
+    bind(classOf[ConfigurationLoader]).to(classOf[ConfigurationLoaderImpl]).asEagerSingleton()
     bind(classOf[SessionRepository]).to(classOf[SessionRepositoryImpl]).asEagerSingleton()
     bind(classOf[SessionService]).to(classOf[SessionServiceImpl]).asEagerSingleton()
     bind(classOf[SessionController]).to(classOf[SessionControllerImpl]).asEagerSingleton()
