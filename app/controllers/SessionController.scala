@@ -56,7 +56,6 @@ trait SessionController extends BackController {
           Ok(data)
         } recover {
           case _: SessionKeyNotFoundException => NotFound
-          case _: MissingSessionException     => Forbidden
         }
       }
     }

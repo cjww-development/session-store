@@ -56,8 +56,6 @@ class SessionServiceSpec extends CJWWSpec {
     val testService = new SessionService {
       override val sessionRepo = mockRepo
     }
-
-    implicit val request = FakeRequest().withHeaders("cookieId" -> s"session-$uuid")
   }
 
   "cacheData" should {

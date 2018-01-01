@@ -34,14 +34,14 @@ class SessionServiceImpl @Inject()(val sessionRepo: SessionRepository) extends S
 trait SessionService {
   val sessionRepo: SessionRepository
 
-  def cacheData(sessionId: String, data: String)(implicit request: Request[_]): Future[Boolean] = {
+  def cacheData(sessionId: String, data: String): Future[Boolean] = {
     sessionRepo.cacheData(sessionId, data) map {
       case MongoSuccessCreate   => true
       case MongoFailedCreate    => false
     }
   }
 
-  def getByKey(sessionId : String, key : String)(implicit format : OFormat[Session], request: Request[_]) : Future[String] = {
+  def getByKey(sessionId : String, key : String)(implicit format : OFormat[Session]) : Future[String] = {
     sessionRepo.getSession(sessionId) map {
       _.fold(throw new MissingSessionException(s"No session for sessionId $sessionId")) { session =>
         val keyValue = session.data.getOrElse(key, throw new SessionKeyNotFoundException(s"No data found for key $key for sessionId $sessionId"))
@@ -50,11 +50,11 @@ trait SessionService {
     }
   }
 
-  def updateDataKey(sessionId : String, updateSet: UpdateSet)(implicit request: Request[_]): Future[MongoUpdatedResponse] = {
+  def updateDataKey(sessionId : String, updateSet: UpdateSet): Future[MongoUpdatedResponse] = {
     sessionRepo.updateSession(sessionId, updateSet)
   }
 
-  def destroySessionRecord(sessionId : String)(implicit request: Request[_]): Future[Boolean] = {
+  def destroySessionRecord(sessionId : String): Future[Boolean] = {
     sessionRepo.removeSession(sessionId) map {
       case MongoSuccessDelete   => true
       case MongoFailedDelete    => false

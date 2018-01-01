@@ -20,14 +20,14 @@ object AppDependencies {
   def apply(): Seq[ModuleID] = CompileDependencies() ++ UnitTestDependencies() ++ IntegrationTestDependencies()
 }
 
-object CompileDependencies {
+private object CompileDependencies {
   private val dataSecurityVersion  = "2.11.0"
   private val reactiveMongoVersion = "5.5.1"
-  private val backendAuthVersion   = "2.18.0"
+  private val backendAuthVersion   = "2.20.0"
   private val appUtilsVersion      = "2.11.0"
   private val metricsVersion       = "0.7.0"
 
-  val appDependencies: Seq[ModuleID] = Seq(
+  private val appDependencies: Seq[ModuleID] = Seq(
     "com.cjww-dev.libs" % "data-security_2.11"         % dataSecurityVersion,
     "com.cjww-dev.libs" % "reactive-mongo_2.11"        % reactiveMongoVersion,
     "com.cjww-dev.libs" % "backend-auth_2.11"          % backendAuthVersion,
@@ -38,7 +38,7 @@ object CompileDependencies {
   def apply(): Seq[ModuleID] = appDependencies
 }
 
-trait CommonTestDependencies {
+private trait CommonTestDependencies {
   protected val scalaTestPlusPlayVersion = "2.0.1"
   protected val mockitoCoreVersion       = "2.12.0"
   protected val testFrameworkVersion     = "0.1.0"
@@ -47,7 +47,7 @@ trait CommonTestDependencies {
   val testDependencies: Seq[ModuleID]
 }
 
-object UnitTestDependencies extends CommonTestDependencies {
+private object UnitTestDependencies extends CommonTestDependencies {
   override val scope: Configuration = Test
   
   override val testDependencies: Seq[ModuleID] = Seq(
@@ -57,7 +57,7 @@ object UnitTestDependencies extends CommonTestDependencies {
   def apply(): Seq[ModuleID] = testDependencies
 }
 
-object IntegrationTestDependencies extends CommonTestDependencies {
+private object IntegrationTestDependencies extends CommonTestDependencies {
   override val scope: Configuration = IntegrationTest
 
   override val testDependencies: Seq[ModuleID] = Seq(
