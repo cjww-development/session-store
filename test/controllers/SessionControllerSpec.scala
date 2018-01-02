@@ -64,7 +64,7 @@ class SessionControllerSpec extends CJWWSpec with TestDataGenerator {
     .withHeaders(
       "appId"      -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130",
       CONTENT_TYPE -> TEXT
-    ).withBody(DataSecurity.encryptString(testContextId))
+    ).withBody(DataSecurity.encryptType[String](s"""{"contextId" : "$testContextId"}"""))
 
   val getEntryRequest = FakeRequest()
     .withHeaders(

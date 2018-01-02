@@ -63,7 +63,7 @@ class SessionServiceSpec extends CJWWSpec {
       when(mockRepo.cacheData(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(MongoSuccessCreate))
 
-      val result = testService.cacheData("sessionID", "testData")
+      val result = testService.cacheData("sessionID", DataSecurity.encryptType[JsValue](Json.parse("""{"contextId" : "testContextId"}""")))
       Await.result(result, 5.seconds) mustBe true
     }
 
@@ -71,7 +71,7 @@ class SessionServiceSpec extends CJWWSpec {
       when(mockRepo.cacheData(ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(MongoFailedCreate))
 
-      val result = testService.cacheData("sessionID", "testData")
+      val result = testService.cacheData("sessionID", DataSecurity.encryptType[JsValue](Json.parse("""{"contextId" : "testContextId"}""")))
       Await.result(result, 5.seconds) mustBe false
     }
   }

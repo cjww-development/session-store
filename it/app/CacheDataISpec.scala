@@ -16,6 +16,8 @@
 
 package app
 
+import com.cjwwdev.security.encryption.DataSecurity
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import utils.CJWWIntegrationUtils
 
@@ -25,13 +27,13 @@ class CacheDataISpec extends CJWWIntegrationUtils {
       "a new session has been created in session-store" in {
         val request = client(s"$baseUrl/session/session-$uuid/cache")
           .withHeaders("appId" -> "abda73f4-9d52-4bb8-b20d-b5fffd0cc130")
-          .post("testData")
+          .post(DataSecurity.encryptType[JsValue](Json.parse("""{"contextId" : "testContextId"}""")))
 
         val result = await(request)
         result.status mustBe CREATED
 
         val userInfo = await(sessionRepo.getSession(s"session-$uuid"))
-        userInfo.get.data("contextId") mustBe "testData"
+        DataSecurity.decryptString(userInfo.get.data("contextId")) mustBe "testContextId"
 
         afterITest()
       }
