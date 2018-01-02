@@ -42,7 +42,7 @@ trait BackController extends Controller with RequestParsers with IdentifierValid
 
   protected def validateSession(id: String)(continue: Session => Future[Result])(implicit format: OFormat[Session], request: Request[_]): Future[Result] = {
     validateAs(SESSION, id) {
-      matchUrlAndHeader(id) {
+      //matchUrlAndHeader(id) {
         sessionRepository.validateSession(id) flatMap { if(_) {
          sessionRepository.getSession(id) flatMap(_.fold(logWithForbidden("[validateSession] - Session is invalid: action forbidden"))(
            session => if(validateTimestamps(session.modifiedDetails.lastModified)) continue(session) else destroySession(id)
@@ -50,7 +50,7 @@ trait BackController extends Controller with RequestParsers with IdentifierValid
         } else {
           logWithForbidden("[validateSession] - Session doesn't exist, action forbidden")
         }}
-      }
+      //}
     }
   }
 

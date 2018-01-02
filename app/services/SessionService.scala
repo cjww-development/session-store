@@ -23,7 +23,6 @@ import com.cjwwdev.security.encryption.DataSecurity
 import config.{MissingSessionException, SessionKeyNotFoundException}
 import models.{Session, UpdateSet}
 import play.api.libs.json.{JsValue, Json, OFormat}
-import play.api.mvc.Request
 import repositories.SessionRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -35,7 +34,8 @@ trait SessionService {
   val sessionRepo: SessionRepository
 
   def cacheData(sessionId: String, data: String): Future[Boolean] = {
-    sessionRepo.cacheData(sessionId, data) map {
+    val contextId = DataSecurity.decryptIntoType[JsValue](data).get.\("contextId").as[String]
+    sessionRepo.cacheData(sessionId, DataSecurity.encryptString(contextId)) map {
       case MongoSuccessCreate   => true
       case MongoFailedCreate    => false
     }

@@ -23,6 +23,7 @@ import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
 import com.cjwwdev.security.encryption.DataSecurity
 import config.{BackController, MissingSessionException, SessionKeyNotFoundException}
 import models.UpdateSet
+import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
 import repositories.SessionRepository
