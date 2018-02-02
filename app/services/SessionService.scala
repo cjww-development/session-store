@@ -1,18 +1,17 @@
 /*
- * Copyright 2018 CJWW Development
+ *  Copyright 2018 CJWW Development
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 package services
@@ -34,20 +33,19 @@ class SessionServiceImpl @Inject()(val sessionRepo: SessionRepository) extends S
 trait SessionService {
   val sessionRepo: SessionRepository
 
-  def cacheData(sessionId: String, data: String): Future[Boolean] = {
-    val contextId = DataSecurity.decryptIntoType[JsValue](data).get.\("contextId").as[String]
-    sessionRepo.cacheData(sessionId, DataSecurity.encryptString(contextId)) map {
+  def cacheData(sessionId: String, contextId: String): Future[Boolean] = {
+    sessionRepo.cacheData(sessionId, contextId) map {
       case MongoSuccessCreate   => true
       case MongoFailedCreate    => false
     }
   }
 
   def getByKey(sessionId : String, key : String)(implicit format : OFormat[Session]) : Future[String] = {
-    sessionRepo.getSession(sessionId) map {
-      _.fold(throw new MissingSessionException(s"No session for sessionId $sessionId")) { session =>
-        val keyValue = session.data.getOrElse(key, throw new SessionKeyNotFoundException(s"No data found for key $key for sessionId $sessionId"))
-        DataSecurity.encryptType[JsValue](Json.parse(s"""{"data" : "$keyValue"}"""))
-      }
+    for {
+      session <- sessionRepo.getSession(sessionId)
+      _       <- sessionRepo.renewSession(sessionId)
+    } yield session.fold(throw new MissingSessionException(s"No session for sessionId $sessionId")) { session =>
+      session.data.getOrElse(key, throw new SessionKeyNotFoundException(s"No data found for key $key for sessionId $sessionId"))
     }
   }
 

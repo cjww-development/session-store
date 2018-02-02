@@ -21,10 +21,10 @@ object AppDependencies {
 }
 
 private object CompileDependencies {
-  private val dataSecurityVersion  = "2.11.0"
+  private val dataSecurityVersion  = "2.12.0"
   private val reactiveMongoVersion = "5.5.1"
-  private val backendAuthVersion   = "2.20.0"
-  private val appUtilsVersion      = "2.11.0"
+  private val backendAuthVersion   = "2.22.0"
+  private val appUtilsVersion      = "2.14.0"
   private val metricsVersion       = "0.7.0"
 
   private val appDependencies: Seq[ModuleID] = Seq(

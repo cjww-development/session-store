@@ -1,22 +1,22 @@
 /*
- * Copyright 2018 CJWW Development
+ *  Copyright 2018 CJWW Development
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 package utils
 
+import com.cjwwdev.implicits.ImplicitHandlers
 import com.cjwwdev.test.data.TestDataGenerator
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -29,7 +29,7 @@ import repositories.SessionRepository
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Awaitable}
 
-trait CJWWIntegrationUtils extends PlaySpec with GuiceOneServerPerSuite with TestDataGenerator {
+trait CJWWIntegrationUtils extends PlaySpec with GuiceOneServerPerSuite with TestDataGenerator with ImplicitHandlers {
 
   val additionalConfiguration = Map(
     "repositories.SessionRepositoryImpl.database"   -> "test-session-db",
@@ -52,7 +52,7 @@ trait CJWWIntegrationUtils extends PlaySpec with GuiceOneServerPerSuite with Tes
 
   private val request = FakeRequest()
 
-  def beforeITest(): Unit = await(sessionRepo.cacheData(s"session-$uuid", "testData"))
+  def beforeITest(sessionId: String): Unit = await(sessionRepo.cacheData(sessionId, "testData"))
 
-  def afterITest(): Unit = await(sessionRepo.removeSession(s"session-$uuid"))
+  def afterITest(sessionId: String): Unit = await(sessionRepo.removeSession(sessionId))
 }
