@@ -12,17 +12,18 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
  */
 
 package services
 
 import javax.inject.Inject
 
-import com.cjwwdev.reactivemongo._
-import com.cjwwdev.security.encryption.DataSecurity
-import config.{MissingSessionException, SessionKeyNotFoundException}
+import com.cjwwdev.logging.Logging
+import com.cjwwdev.mongo.responses._
+import common.{MissingSessionException, SessionKeyNotFoundException}
 import models.{Session, UpdateSet}
-import play.api.libs.json.{JsValue, Json, OFormat}
+import play.api.libs.json.OFormat
 import repositories.SessionRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -30,7 +31,7 @@ import scala.concurrent.Future
 
 class SessionServiceImpl @Inject()(val sessionRepo: SessionRepository) extends SessionService
 
-trait SessionService {
+trait SessionService extends Logging {
   val sessionRepo: SessionRepository
 
   def cacheData(sessionId: String, contextId: String): Future[Boolean] = {
@@ -58,5 +59,17 @@ trait SessionService {
       case MongoSuccessDelete   => true
       case MongoFailedDelete    => false
     }
+  }
+
+  def cleanseSessions: Future[MongoDeleteResponse] = {
+    for {
+      toRemove <- sessionRepo.getSessions map { list =>
+        val sessionsToRemove = list.filter(_.hasTimedOut)
+        logger.info(s"Current sessions: ${list.size}")
+        logger.info(s"Sessions to remove ${sessionsToRemove.size}")
+        sessionsToRemove
+      }
+      _ = toRemove.foreach(x => sessionRepo.removeSession(x.sessionId))
+    } yield MongoSuccessDelete
   }
 }

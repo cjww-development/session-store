@@ -12,15 +12,19 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
  */
 
 package repositories
 
 import javax.inject.Inject
 
-import com.cjwwdev.config.ConfigurationLoader
-import com.cjwwdev.reactivemongo._
+import com.cjwwdev.logging.Logging
+import com.cjwwdev.mongo.DatabaseRepository
+import com.cjwwdev.mongo.connection.ConnectionSettings
+import com.cjwwdev.mongo.responses._
 import models.{Session, SessionTimestamps, UpdateSet}
+import play.api.Configuration
 import play.api.libs.json.{JsValue, OFormat}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONDocument
@@ -29,9 +33,10 @@ import reactivemongo.play.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class SessionRepositoryImpl @Inject()(val configurationLoader: ConfigurationLoader) extends SessionRepository
+class SessionRepositoryImpl @Inject()(val config: Configuration) extends SessionRepository with ConnectionSettings
 
-trait SessionRepository extends MongoDatabase {
+trait SessionRepository extends DatabaseRepository with Logging {
+
   override def indexes: Seq[Index] = Seq(
     Index(
       key    = Seq("sessionId" -> IndexType.Ascending),
@@ -84,13 +89,20 @@ trait SessionRepository extends MongoDatabase {
       res <- col.update(sessionIdSelector(sessionId), BSONDocument(
         "$set" -> BSONDocument("modifiedDetails.lastModified" -> BSONDocument("$date" -> Session.getDateTime.getMillis)))
       )
-    } yield if(res.ok) {
+    } yield if (res.ok) {
       logger.info(s"[renewSession] : Successfully renewed session for session id $sessionId")
       MongoSuccessUpdate
     } else {
       logger.error(s"[renewSession] : There was a problem renewing session for session id $sessionId")
       MongoFailedUpdate
     }
+  }
+
+  def getSessions(implicit format: OFormat[Session]): Future[List[Session]] = {
+    for {
+      col <- collection
+      res <- col.find(BSONDocument()).cursor[Session]().collect[List]()
+    } yield res
   }
 
   def updateSession(sessionId: String, updateSet: UpdateSet)(implicit format: OFormat[Session]): Future[MongoUpdatedResponse] = {

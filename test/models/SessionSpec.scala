@@ -12,24 +12,25 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
  */
 package models
 
+import helpers.models.ModelSpec
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
-import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.{JsSuccess, Json}
+import play.api.libs.json.Json
 
-class SessionSpec extends PlaySpec {
+class SessionSpec extends ModelSpec {
 
   val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
-  val dateTime: DateTime = dateFormat.parseDateTime("2017-04-13 19:59:14")
+  val dateTime: DateTime            = dateFormat.parseDateTime("2017-04-13 19:59:14")
 
   val testSession = Session(
-    sessionId = "testSessionId",
-    data = Map("testKey" -> "testData"),
+    sessionId       = "testSessionId",
+    data            = Map("testKey" -> "testData"),
     modifiedDetails = SessionTimestamps(
-      created = dateTime,
+      created      = dateTime,
       lastModified = dateTime
     )
   )
@@ -53,8 +54,12 @@ class SessionSpec extends PlaySpec {
     """.stripMargin)
 
   "Session" should {
-    "be able to be transformed from a model to json" in {
+    "be able to be transformed from a case class to json" in {
       Json.toJson(testSession) mustBe testJson
+    }
+
+    "be able to be transformed from Json into a case class" in {
+      Json.fromJson[Session](testJson).mustNotHaveErrors
     }
   }
 }

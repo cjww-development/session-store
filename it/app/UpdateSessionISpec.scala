@@ -12,6 +12,7 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
  */
 
 package app
@@ -19,22 +20,18 @@ package app
 import com.cjwwdev.http.headers.HeaderPackage
 import com.cjwwdev.security.encryption.DataSecurity
 import models.UpdateSet
-import utils.CJWWIntegrationUtils
 import play.api.test.Helpers._
+import utils.IntegrationSpec
 
-class UpdateSessionISpec extends CJWWIntegrationUtils {
-  val testSessionId = generateTestSystemId(SESSION)
+class UpdateSessionISpec extends IntegrationSpec {
+  val enc = UpdateSet("testKey", "SomeData").encryptType
 
-  s"/session/$testSessionId" should {
+  s"/session/$sessionId" should {
     "return an Ok" when {
       "the session has been updated" in {
-        beforeITest(testSessionId)
-
-        val enc = DataSecurity.encryptType[UpdateSet](UpdateSet("testKey", "SomeData"))
-
-        val request = client(s"$baseUrl/session/$testSessionId")
+        val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
-            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
+            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
           )
           .withBody(enc)
@@ -44,19 +41,17 @@ class UpdateSessionISpec extends CJWWIntegrationUtils {
 
         result.status mustBe CREATED
 
-        await(sessionRepo.getSession(testSessionId)).get.data("testKey") mustBe "SomeData"
-
-        afterITest(testSessionId)
+        await(sessionRepo.getSession(sessionId)).get.data("testKey") mustBe "SomeData"
       }
     }
 
     "return a forbidden" when {
       "the requested session cannot be found" in {
-        val enc = DataSecurity.encryptType[UpdateSet](UpdateSet("testKey", "SomeData"))
+        await(sessionRepo.removeSession(sessionId))
 
-        val request = client(s"$baseUrl/session/$testSessionId")
+        val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
-            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
+            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
           )
           .withBody(enc)
@@ -65,14 +60,10 @@ class UpdateSessionISpec extends CJWWIntegrationUtils {
         val result = await(request)
 
         result.status mustBe FORBIDDEN
-
-        afterITest(testSessionId)
       }
 
       "the request is not authorised" in {
-        val enc = DataSecurity.encryptType[UpdateSet](UpdateSet("testKey", "SomeData"))
-
-        val request = client(s"$baseUrl/session/$testSessionId")
+        val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
             CONTENT_TYPE -> TEXT
           )
@@ -82,8 +73,6 @@ class UpdateSessionISpec extends CJWWIntegrationUtils {
         val result = await(request)
 
         result.status mustBe FORBIDDEN
-
-        afterITest(testSessionId)
       }
     }
   }

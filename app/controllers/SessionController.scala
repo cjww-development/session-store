@@ -12,6 +12,7 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
  */
 
 package controllers
@@ -19,8 +20,9 @@ package controllers
 import javax.inject.Inject
 
 import com.cjwwdev.config.ConfigurationLoader
-import com.cjwwdev.reactivemongo.{MongoFailedUpdate, MongoSuccessUpdate}
-import config.{BackController, MissingSessionException, SessionKeyNotFoundException}
+import com.cjwwdev.mongo.responses.{MongoFailedUpdate, MongoSuccessUpdate}
+import com.cjwwdev.security.encryption.DataSecurity
+import common.{BackController, MissingSessionException, SessionKeyNotFoundException}
 import models.UpdateSet
 import play.api.mvc.{Action, AnyContent}
 import repositories.SessionRepository
@@ -63,6 +65,8 @@ trait SessionController extends BackController {
   def updateSession(sessionId: String): Action[String] = Action.async(parse.text) { implicit request =>
     applicationVerification {
       validateSession(sessionId) { session =>
+        logger.error(s"##########  ${request.body}")
+        logger.error(s"##########  ${request.headers.get("testHeader")}")
         withJsonBody[UpdateSet](UpdateSet.standardFormat) { updateData =>
           sessionService.updateDataKey(session.sessionId, updateData) map {
             case MongoSuccessUpdate => Created
@@ -86,7 +90,7 @@ trait SessionController extends BackController {
   def getContextId(sessionId: String): Action[AnyContent] = Action.async { implicit request =>
     applicationVerification {
       validateSession(sessionId) { session =>
-        Future.successful(Ok(session.data("contextId").encrypt))
+        Future.successful(Ok(session.data("contextId")))
       }
     }
   }
