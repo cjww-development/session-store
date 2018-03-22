@@ -65,8 +65,6 @@ trait SessionController extends BackController {
   def updateSession(sessionId: String): Action[String] = Action.async(parse.text) { implicit request =>
     applicationVerification {
       validateSession(sessionId) { session =>
-        logger.error(s"##########  ${request.body}")
-        logger.error(s"##########  ${request.headers.get("testHeader")}")
         withJsonBody[UpdateSet](UpdateSet.standardFormat) { updateData =>
           sessionService.updateDataKey(session.sessionId, updateData) map {
             case MongoSuccessUpdate => Created

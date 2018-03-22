@@ -35,8 +35,8 @@ class SessionCleanJob @Inject()(val actorSystem: ActorSystem,
   lazy val interval = configurationLoader.loadedConfig.underlying.getLong(s"jobs.$jobName.interval")
 
   override def scheduledJob: Future[JobCompletionStatus] = {
-    sessionService.cleanseSessions flatMap {
-      _ => Future.successful(JobComplete)
+    sessionService.cleanseSessions map {
+      _ => JobComplete
     } recover {
       case _ => JobFailed
     }
