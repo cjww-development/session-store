@@ -12,12 +12,13 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
  */
 
 package models
 
 import com.cjwwdev.json.TimeFormat
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{DateTime, DateTimeZone, Interval}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -32,7 +33,10 @@ object SessionTimestamps extends TimeFormat {
 
 case class Session(sessionId : String,
                    data : Map[String, String],
-                   modifiedDetails : SessionTimestamps)
+                   modifiedDetails : SessionTimestamps) {
+
+  def hasTimedOut: Boolean = new Interval(modifiedDetails.lastModified, DateTime.now).toDuration.getStandardHours >= 1
+}
 
 object Session {
   implicit val standardFormat: OFormat[Session] = (

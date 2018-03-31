@@ -12,17 +12,19 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
  */
 
-package config
+package common
 
 import javax.inject.Inject
 
-import com.cjwwdev.auth.actions.BaseAuth
+import com.cjwwdev.auth.backend.BaseAuth
 import com.cjwwdev.filters.RequestLoggingFilter
 import com.cjwwdev.http.headers.HttpHeaders
 import com.cjwwdev.identifiers.IdentifierValidation
 import com.cjwwdev.implicits.ImplicitHandlers
+import com.cjwwdev.mongo.indexes.RepositoryIndexer
 import com.cjwwdev.request.RequestParsers
 import com.kenshoo.play.metrics.MetricsFilter
 import models.Session
@@ -57,7 +59,7 @@ trait BackController extends Controller with RequestParsers with IdentifierValid
 
   private def destroySession(sessionId: String)(implicit request: Request[_]): Future[Result] = {
     logger.warn("[validateSession]: Session has timed out, action forbidden")
-    sessionRepository.removeSession(sessionId) map(_ => Forbidden(s"Session $sessionId has timedout action forbidden"))
+    sessionRepository.removeSession(sessionId) map(_ => Forbidden(s"Session $sessionId has timed out action forbidden"))
   }
 
   private val validateTimestamps: DateTime => Boolean = lastModified => !(new Interval(lastModified, DateTime.now).toDuration.getStandardHours >= 1)
@@ -67,6 +69,11 @@ trait BackController extends Controller with RequestParsers with IdentifierValid
 
 class EnabledFilters @Inject()(loggingFilter: RequestLoggingFilter, metricsFilter: MetricsFilter)
   extends DefaultHttpFilters(loggingFilter, metricsFilter)
+
+class RepositoryIndexerImpl @Inject()(sessionRepository: SessionRepository) extends RepositoryIndexer {
+  override val repositories = Seq(sessionRepository)
+  runIndexing
+}
 
 class SessionKeyNotFoundException(msg: String) extends Exception(msg)
 class MissingSessionException(msg: String) extends Exception(msg)

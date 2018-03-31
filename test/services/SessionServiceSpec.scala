@@ -12,35 +12,28 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
  */
 
 package services
 
-import java.util.UUID
-
 import com.cjwwdev.implicits.ImplicitHandlers
-import com.cjwwdev.reactivemongo._
-import com.cjwwdev.test.CJWWSpec
+import com.cjwwdev.mongo.responses._
+import common.MissingSessionException
+import helpers.other.{Fixtures, TestDataGenerator}
+import helpers.repositories.MockSessionRepository
+import helpers.services.ServicesSpec
 import models.{Session, SessionTimestamps, UpdateSet}
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
-import org.mockito.ArgumentMatchers
-import org.mockito.Mockito._
-import repositories.SessionRepository
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-
-class SessionServiceSpec extends CJWWSpec {
-
-  val mockRepo = mock[SessionRepository]
-
+class SessionServiceSpec extends ServicesSpec with MockSessionRepository with ImplicitHandlers {
   val testUpdateSet = UpdateSet("userInfo","testData")
 
   val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
-  val dateTime: DateTime = dateFormat.parseDateTime("2017-04-13 19:59:14")
+  override val dateTime: DateTime   = dateFormat.parseDateTime("2017-04-13 19:59:14")
 
-  val testSession = Session(
+  override val testSession = Session(
     sessionId       = "testSessionId",
     data            = Map("testKey" -> "testData"),
     modifiedDetails = SessionTimestamps(
@@ -49,75 +42,90 @@ class SessionServiceSpec extends CJWWSpec {
     )
   )
 
-  val uuid = UUID.randomUUID()
-
-  class Setup extends ImplicitHandlers {
-    val testService = new SessionService {
-      override val sessionRepo = mockRepo
-    }
+  val testService = new SessionService {
+    override val sessionRepo = mockSessionRepository
   }
 
   "cacheData" should {
-    "return true if data is successfully saved" in new Setup {
-      when(mockRepo.cacheData(ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future(MongoSuccessCreate))
+    "return true if data is successfully saved" in {
+      mockCacheDataRepository(true)
 
-      val result = testService.cacheData("sessionID", "testContextId".encrypt)
-      await(result) mustBe true
+      awaitAndAssert(testService.cacheData(testSessionId, "testContextId".encrypt)) {
+        _ mustBe true
+      }
     }
 
-    "return false if there was a problem saving" in new Setup {
-      when(mockRepo.cacheData(ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future(MongoFailedCreate))
+    "return false if there was a problem saving" in {
+      mockCacheDataRepository(false)
 
-      val result = testService.cacheData("sessionID", "testContextId".encrypt)
-      await(result) mustBe false
+      awaitAndAssert(testService.cacheData(testSessionId, "testContextId".encrypt)) {
+        _ mustBe false
+      }
     }
   }
 
   "getByKey" should {
-    "return an optional string" in new Setup {
-      when(mockRepo.getSession(ArgumentMatchers.any())(ArgumentMatchers.any()))
-        .thenReturn(Future(Some(testSession)))
+    "return an optional string" in {
+      mockGetSession(Some(testSession))
 
-      when(mockRepo.renewSession(ArgumentMatchers.any())(ArgumentMatchers.any()))
-        .thenReturn(Future(MongoSuccessUpdate))
+      mockRenewSession(true)
 
-      val result = testService.getByKey("testSessionId", "testKey")
-      await(result) mustBe "testData"
+      awaitAndAssert(testService.getByKey(testSessionId, "testKey")) {
+        _ mustBe "testData"
+      }
+    }
+
+    "throw a MissingSessionException if the given session can't be found" in {
+      mockGetSession(None)
+
+      mockRenewSession(false)
+
+      intercept[MissingSessionException](await(testService.getByKey("testSessionId", "testKey")))
     }
   }
 
   "updateDataKey" should {
     "return an UpdateWriteResult" when {
-      "given a sessionID, a key and data" in new Setup {
-        when(mockRepo.updateSession(ArgumentMatchers.any(), ArgumentMatchers.any())(ArgumentMatchers.any()))
-          .thenReturn(Future(MongoSuccessUpdate))
+      "given a sessionID, a key and data" in {
+        mockUpdateSession(true)
 
-        val result = testService.updateDataKey("testID", testUpdateSet)
-        await(result) mustBe MongoSuccessUpdate
+        awaitAndAssert(testService.updateDataKey(testSessionId, testUpdateSet)) {
+          _ mustBe MongoSuccessUpdate
+        }
       }
     }
   }
 
   "destroySessionRecord" should {
     "remove a session record" when {
-      "given a valid session id" in new Setup {
-        when(mockRepo.removeSession(ArgumentMatchers.any()))
-          .thenReturn(Future(MongoSuccessDelete))
+      "given a valid session id" in {
+        mockRemoveSession(true)
 
-        val result = testService.destroySessionRecord("sessionID")
-        await(result) mustBe true
+        awaitAndAssert(testService.destroySessionRecord(testSessionId)) { result =>
+          assert(result)
+        }
       }
     }
 
     "return a MongoFailedDelete" when {
-      "there was a problem deleting the session record" in new Setup {
-        when(mockRepo.removeSession(ArgumentMatchers.any()))
-          .thenReturn(Future(MongoFailedDelete))
+      "there was a problem deleting the session record" in {
+        mockRemoveSession(false)
 
-        val result = testService.destroySessionRecord("sessionID")
-        await(result) mustBe false
+        awaitAndAssert(testService.destroySessionRecord(testSessionId)) { result =>
+          assert(!result)
+        }
+      }
+    }
+  }
+
+  "cleanseSessions" should {
+    "return a MongoSuccessDelete" in {
+      mockGetSessions(List(testSession))
+
+      mockRemoveSession(true)
+
+      awaitAndAssert(testService.cleanseSessions) {
+        _ mustBe MongoSuccessDelete
       }
     }
   }

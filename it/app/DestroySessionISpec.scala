@@ -12,27 +12,22 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
  */
 
 package app
 
-import java.util.UUID
-
 import com.cjwwdev.http.headers.HeaderPackage
-import utils.CJWWIntegrationUtils
 import play.api.test.Helpers._
+import utils.IntegrationSpec
 
-class DestroySessionISpec extends CJWWIntegrationUtils {
-  val testSessionId = generateTestSystemId(SESSION)
-
-  s"/session/$testSessionId/destroy" should {
+class DestroySessionISpec extends IntegrationSpec {
+  s"/session/$sessionId/destroy" should {
     "return an OK" when {
       "the session has been removed" in {
-        beforeITest(testSessionId)
-
-        val request = client(s"$baseUrl/session/$testSessionId/destroy")
+        val request = client(s"$testAppUrl/session/$sessionId/destroy")
           .withHeaders(
-            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
+            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
           )
           .delete()
@@ -40,29 +35,27 @@ class DestroySessionISpec extends CJWWIntegrationUtils {
 
         result.status mustBe OK
 
-        await(sessionRepo.getSession(testSessionId)) mustBe None
-
-        afterITest(testSessionId)
+        await(sessionRepo.getSession(sessionId)) mustBe None
       }
     }
 
     "return forbidden" when {
       "the session cannot be found" in {
-        val request = client(s"$baseUrl/session/$testSessionId/destroy")
+        await(sessionRepo.removeSession(sessionId))
+
+        val request = client(s"$testAppUrl/session/$sessionId/destroy")
           .withHeaders(
-            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
+            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
           )
           .delete()
         val result = await(request)
 
         result.status mustBe FORBIDDEN
-
-        afterITest(testSessionId)
       }
 
       "the request is not authorised" in {
-        val request = client(s"$baseUrl/session/$testSessionId/destroy")
+        val request = client(s"$testAppUrl/session/$sessionId/destroy")
           .withHeaders(
             CONTENT_TYPE -> TEXT
           )
@@ -70,8 +63,6 @@ class DestroySessionISpec extends CJWWIntegrationUtils {
         val result = await(request)
 
         result.status mustBe FORBIDDEN
-
-        afterITest(testSessionId)
       }
     }
   }

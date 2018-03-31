@@ -1,17 +1,18 @@
 /*
- * Copyright 2018 CJWW Development
+ *  Copyright 2018 CJWW Development
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 import TestPhases.oneForkedJvmPerTest
@@ -30,7 +31,7 @@ val btVersion: String = Try(ConfigFactory.load.getString("version")) match {
 }
 
 lazy val scoverageSettings = Seq(
-  ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;/.data/..*;views.*;models.*;.*(AuthService|BuildInfo|Routes).*",
+  ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;/.data/..*;views.*;models.*;common.*;.*(AuthService|BuildInfo|Routes).*",
   ScoverageKeys.coverageMinimum          := 80,
   ScoverageKeys.coverageFailOnMinimum    := false,
   ScoverageKeys.coverageHighlighting     := true
@@ -48,13 +49,17 @@ lazy val microservice = Project(appName, file("."))
     organization                                  :=  "com.cjww-dev.backends",
     resolvers                                     +=  "cjww-dev" at "http://dl.bintray.com/cjww-development/releases",
     libraryDependencies                           ++= AppDependencies(),
-    herokuAppName in Compile                      :=  "cjww-session-store",
+    herokuAppName              in Compile         :=  "cjww-session-store",
     bintrayOrganization                           :=  Some("cjww-development"),
-    bintrayReleaseOnPublish in ThisBuild          :=  true,
+    bintrayReleaseOnPublish    in ThisBuild       :=  true,
     bintrayRepository                             :=  "releases",
     bintrayOmitLicense                            :=  true,
-    Keys.fork in IntegrationTest                  :=  false,
-    testGrouping in IntegrationTest               :=  oneForkedJvmPerTest((definedTests in IntegrationTest).value),
+    fork                       in IntegrationTest :=  false,
+    testGrouping               in IntegrationTest :=  oneForkedJvmPerTest((definedTests in IntegrationTest).value),
     unmanagedSourceDirectories in IntegrationTest :=  (baseDirectory in IntegrationTest)(base => Seq(base / "it")).value,
-    parallelExecution in IntegrationTest          :=  false
+    parallelExecution          in IntegrationTest :=  false,
+    fork                       in Test            :=  true,
+    testForkedParallel         in Test            :=  true,
+    parallelExecution          in Test            :=  true,
+    logBuffered                in Test            :=  false
   )

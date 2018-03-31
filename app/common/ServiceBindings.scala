@@ -12,13 +12,17 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
  */
 
-package config
+package common
 
 import com.cjwwdev.config.{ConfigurationLoader, ConfigurationLoaderImpl}
+import com.cjwwdev.mongo.indexes.RepositoryIndexer
+import com.cjwwdev.scheduling.ScheduledJob
 import com.google.inject.AbstractModule
 import controllers.{SessionController, SessionControllerImpl}
+import jobs.SessionCleanJob
 import repositories.{SessionRepository, SessionRepositoryImpl}
 import services.{SessionService, SessionServiceImpl}
 
@@ -26,7 +30,9 @@ class ServiceBindings extends AbstractModule {
   override def configure(): Unit = {
     bind(classOf[ConfigurationLoader]).to(classOf[ConfigurationLoaderImpl]).asEagerSingleton()
     bind(classOf[SessionRepository]).to(classOf[SessionRepositoryImpl]).asEagerSingleton()
+    bind(classOf[RepositoryIndexer]).to(classOf[RepositoryIndexerImpl]).asEagerSingleton()
     bind(classOf[SessionService]).to(classOf[SessionServiceImpl]).asEagerSingleton()
     bind(classOf[SessionController]).to(classOf[SessionControllerImpl]).asEagerSingleton()
+    bind(classOf[ScheduledJob]).to(classOf[SessionCleanJob]).asEagerSingleton()
   }
 }
