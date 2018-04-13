@@ -19,13 +19,11 @@ package controllers
 
 import com.cjwwdev.http.headers.HeaderPackage
 import com.cjwwdev.implicits.ImplicitHandlers
-import com.cjwwdev.security.encryption.DataSecurity
 import helpers.auth.AuthBuilder
 import helpers.controllers.ControllerSpec
-import helpers.other.{Fixtures, TestDataGenerator}
 import helpers.repositories.MockSessionRepository
 import helpers.services.MockSessionService
-import models.UpdateSet
+import play.api.libs.json.Json
 import play.api.test.FakeRequest
 
 class SessionControllerSpec
@@ -40,20 +38,18 @@ class SessionControllerSpec
     override val sessionRepository = mockSessionRepository
   }
 
-  "cache" should {
+  "initialiseSession" should {
     val cacheRequest = FakeRequest()
       .withHeaders(
         "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
         CONTENT_TYPE   -> TEXT
-      ).withBody(
-        testContextId.encrypt
-      )
+      ).withBody("")
 
     "return an ok" when {
       "the session has been validated and the request body data has been cached" in {
         mockCacheData(true)
 
-        assertFutureResult(testController.cache(testSessionId)(cacheRequest)) { result =>
+        assertFutureResult(testController.initialiseSession(testSessionId)(cacheRequest)) { result =>
           status(result) mustBe CREATED
         }
       }
@@ -63,7 +59,7 @@ class SessionControllerSpec
       "the session has been validated but there was a problem caching the data" in {
         mockCacheData(false)
 
-        assertFutureResult(testController.cache(testSessionId)(cacheRequest)) { result =>
+        assertFutureResult(testController.initialiseSession(testSessionId)(cacheRequest)) { result =>
           status(result) mustBe INTERNAL_SERVER_ERROR
         }
       }
@@ -81,7 +77,7 @@ class SessionControllerSpec
       "data has been found against the given key and session id" in {
         mockGetKey(sessionExists = true, keyExists = true)
 
-        runActionWithAuth(testController.getEntry(testSessionId, "testKey"), getEntryRequest, Some(testSession)) { result =>
+        runActionWithAuth(testController.getEntry(testSessionId, Some("testKey")), getEntryRequest, Some(testSession)) { result =>
           status(result) mustBe OK
           contentAsString(result) mustBe "testData"
         }
@@ -92,7 +88,7 @@ class SessionControllerSpec
       "no data has been found against the key and session id" in {
         mockGetKey(sessionExists = true, keyExists = false)
 
-        runActionWithAuth(testController.getEntry(testSessionId, "testKey"), getEntryRequest, Some(testSession)) { result =>
+        runActionWithAuth(testController.getEntry(testSessionId, Some("testKey")), getEntryRequest, Some(testSession)) { result =>
           status(result) mustBe NO_CONTENT
         }
       }
@@ -105,7 +101,13 @@ class SessionControllerSpec
       CONTENT_TYPE   -> TEXT,
       "testHeader"   -> "qwerty"
     ).withBody(
-      UpdateSet(key  = "testUpdateKey", data = "testUpdateData").encryptType
+      Json.parse(
+        """
+          |{
+          |   "testUpdateKey" : "testUpdateData"
+          |}
+        """.stripMargin
+      )
     )
 
   "updateSession" should {
@@ -113,8 +115,8 @@ class SessionControllerSpec
       "the session has been updated" in {
         mockUpdateDataKey(false)
 
-        runActionWithAuthStringBody(testController.updateSession(testSessionId), updateSessionRequest, Some(testSession)) { result =>
-          status(result) mustBe CREATED
+        runActionWithAuthJsonBody(testController.updateSession(testSessionId), updateSessionRequest, Some(testSession)) { result =>
+          status(result) mustBe OK
         }
       }
     }
@@ -123,7 +125,7 @@ class SessionControllerSpec
       "there was a problem updating the session" in {
         mockUpdateDataKey(true)
 
-        runActionWithAuthStringBody(testController.updateSession(testSessionId), updateSessionRequest, Some(testSession)) { result =>
+        runActionWithAuthJsonBody(testController.updateSession(testSessionId), updateSessionRequest, Some(testSession)) { result =>
           status(result) mustBe INTERNAL_SERVER_ERROR
         }
       }
@@ -142,7 +144,7 @@ class SessionControllerSpec
         mockDestroySessionRecord(true)
 
         runActionWithAuth(testController.destroy(testSessionId), destroySessionRequest, Some(testSession)) { result =>
-          status(result) mustBe OK
+          status(result) mustBe NO_CONTENT
         }
       }
     }
@@ -153,23 +155,6 @@ class SessionControllerSpec
 
         runActionWithAuth(testController.destroy(testSessionId), destroySessionRequest, Some(testSession)) { result =>
           status(result) mustBe INTERNAL_SERVER_ERROR
-        }
-      }
-    }
-  }
-
-  "getContext" should {
-    "return an ok" when {
-      "the contextId for the given session has been found" in {
-        val getContextRequest = FakeRequest()
-          .withHeaders(
-            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
-            CONTENT_TYPE   -> TEXT
-          )
-
-        runActionWithAuth(testController.getContextId(testSessionId), getContextRequest, Some(testSession)) { result =>
-          status(result) mustBe OK
-          contentAsString(result).decrypt mustBe testContextId
         }
       }
     }

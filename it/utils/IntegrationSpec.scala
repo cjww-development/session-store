@@ -47,7 +47,7 @@ trait IntegrationSpec extends IntegrationTestSpec with TestDataGenerator with Im
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    await(sessionRepo.cacheData(sessionId, contextId.encrypt))
+    await(sessionRepo.cacheData(sessionId))
   }
 
   override protected def afterEach(): Unit = {

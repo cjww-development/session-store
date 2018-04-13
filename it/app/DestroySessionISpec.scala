@@ -18,14 +18,13 @@
 package app
 
 import com.cjwwdev.http.headers.HeaderPackage
-import play.api.test.Helpers._
 import utils.IntegrationSpec
 
 class DestroySessionISpec extends IntegrationSpec {
   s"/session/$sessionId/destroy" should {
     "return an OK" when {
       "the session has been removed" in {
-        val request = client(s"$testAppUrl/session/$sessionId/destroy")
+        val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
@@ -33,7 +32,7 @@ class DestroySessionISpec extends IntegrationSpec {
           .delete()
         val result = await(request)
 
-        result.status mustBe OK
+        result.status mustBe NO_CONTENT
 
         await(sessionRepo.getSession(sessionId)) mustBe None
       }
@@ -43,7 +42,7 @@ class DestroySessionISpec extends IntegrationSpec {
       "the session cannot be found" in {
         await(sessionRepo.removeSession(sessionId))
 
-        val request = client(s"$testAppUrl/session/$sessionId/destroy")
+        val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
@@ -55,7 +54,7 @@ class DestroySessionISpec extends IntegrationSpec {
       }
 
       "the request is not authorised" in {
-        val request = client(s"$testAppUrl/session/$sessionId/destroy")
+        val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
             CONTENT_TYPE -> TEXT
           )

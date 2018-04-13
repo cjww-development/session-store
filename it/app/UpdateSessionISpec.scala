@@ -18,30 +18,30 @@
 package app
 
 import com.cjwwdev.http.headers.HeaderPackage
-import com.cjwwdev.security.encryption.DataSecurity
-import models.UpdateSet
-import play.api.test.Helpers._
+import play.api.libs.json.Json
 import utils.IntegrationSpec
 
 class UpdateSessionISpec extends IntegrationSpec {
-  val enc = UpdateSet("testKey", "SomeData").encryptType
-
   s"/session/$sessionId" should {
     "return an Ok" when {
       "the session has been updated" in {
         val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
-            CONTENT_TYPE   -> TEXT
-          )
-          .withBody(enc)
-          .put(enc)
+            CONTENT_TYPE   -> JSON
+          ).patch(Json.parse(
+            """
+              |{
+              |   "testKey" : "testData"
+              |}
+            """.stripMargin
+          ))
 
         val result = await(request)
 
-        result.status mustBe CREATED
+        result.status mustBe OK
 
-        await(sessionRepo.getSession(sessionId)).get.data("testKey") mustBe "SomeData"
+        await(sessionRepo.getSession(sessionId)).get.data("testKey") mustBe "testData"
       }
     }
 
@@ -52,10 +52,15 @@ class UpdateSessionISpec extends IntegrationSpec {
         val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
-            CONTENT_TYPE   -> TEXT
+            CONTENT_TYPE   -> JSON
           )
-          .withBody(enc)
-          .put(enc)
+          .patch(Json.parse(
+            """
+              |{
+              |   "testKey" : "testData"
+              |}
+            """.stripMargin
+          ))
 
         val result = await(request)
 
@@ -65,10 +70,15 @@ class UpdateSessionISpec extends IntegrationSpec {
       "the request is not authorised" in {
         val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
-            CONTENT_TYPE -> TEXT
+            CONTENT_TYPE -> JSON
           )
-          .withBody(enc)
-          .put(enc)
+          .patch(Json.parse(
+            """
+              |{
+              |   "testKey" : "testData"
+              |}
+            """.stripMargin
+          ))
 
         val result = await(request)
 

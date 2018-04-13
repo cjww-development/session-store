@@ -23,6 +23,7 @@ import models.Session
 import org.scalatest.Assertion
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
+import play.api.libs.json.JsValue
 import play.api.libs.ws.ahc.AhcWSClient
 import play.api.mvc.{Action, Result}
 import play.api.test.FakeRequest
@@ -42,6 +43,13 @@ trait AuthBuilder extends PlaySpec with MockSessionRepository with MockitoSugar 
   }
 
   def runActionWithAuthStringBody(action: Action[String], request: FakeRequest[String], session: Option[Session])
+                                 (testAction: Future[Result] => Assertion): Assertion = {
+    mockValidateSession(true)
+    mockGetSession(session)
+    testAction(action(request))
+  }
+
+  def runActionWithAuthJsonBody(action: Action[JsValue], request: FakeRequest[JsValue], session: Option[Session])
                                  (testAction: Future[Result] => Assertion): Assertion = {
     mockValidateSession(true)
     mockGetSession(session)

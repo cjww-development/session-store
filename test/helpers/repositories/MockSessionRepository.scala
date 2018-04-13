@@ -18,18 +18,18 @@
 package helpers.repositories
 
 import com.cjwwdev.mongo.responses._
-import helpers.other.{Fixtures, TestDataGenerator}
+import helpers.other.Fixtures
 import models.Session
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
 import org.mockito.stubbing.OngoingStubbing
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterEach, TestSuite}
 import org.scalatestplus.play.PlaySpec
 import repositories.SessionRepository
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait MockSessionRepository extends BeforeAndAfterEach with MockitoSugar with Fixtures {
   self: PlaySpec =>
@@ -42,7 +42,7 @@ trait MockSessionRepository extends BeforeAndAfterEach with MockitoSugar with Fi
   }
 
   def mockCacheDataRepository(success: Boolean): OngoingStubbing[Future[MongoCreateResponse]] = {
-    when(mockSessionRepository.cacheData(any(), any()))
+    when(mockSessionRepository.cacheData(any()))
       .thenReturn(Future(if(success) MongoSuccessCreate else MongoFailedCreate))
   }
 
@@ -61,9 +61,9 @@ trait MockSessionRepository extends BeforeAndAfterEach with MockitoSugar with Fi
       .thenReturn(Future(sessions))
   }
 
-  def mockUpdateSession(success: Boolean): OngoingStubbing[Future[MongoUpdatedResponse]] = {
-    when(mockSessionRepository.updateSession(any(), any())(any()))
-      .thenReturn(Future(if(success) MongoSuccessUpdate else MongoFailedUpdate))
+  def mockUpdateSession(success: Boolean): OngoingStubbing[Future[(String, String)]] = {
+    when(mockSessionRepository.updateSession(any(), any(), any())(any()))
+      .thenReturn(Future(if(success) "key" -> MongoSuccessUpdate.toString else "key" -> MongoFailedUpdate.toString))
   }
 
   def mockRemoveSession(success: Boolean): OngoingStubbing[Future[MongoDeleteResponse]] = {

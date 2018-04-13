@@ -19,17 +19,16 @@ package helpers.services
 
 import com.cjwwdev.mongo.responses._
 import common.{MissingSessionException, SessionKeyNotFoundException}
-import helpers.other.{Fixtures, TestDataGenerator}
-import org.mockito.Mockito.{reset, when}
 import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{reset, when}
 import org.mockito.stubbing.OngoingStubbing
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterEach, TestSuite}
 import org.scalatestplus.play.PlaySpec
 import services.SessionService
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait MockSessionService extends BeforeAndAfterEach with MockitoSugar {
   self: PlaySpec =>
@@ -42,26 +41,26 @@ trait MockSessionService extends BeforeAndAfterEach with MockitoSugar {
   }
 
   def mockCacheData(cached: Boolean): OngoingStubbing[Future[Boolean]] = {
-    when(mockSessionService.cacheData(any(), any()))
+    when(mockSessionService.cacheData(any()))
       .thenReturn(Future(cached))
   }
 
-  def mockGetKey(sessionExists: Boolean, keyExists: Boolean): OngoingStubbing[Future[String]] = {
+  def mockGetKey(sessionExists: Boolean, keyExists: Boolean): OngoingStubbing[Future[Option[String]]] = {
     when(mockSessionService.getByKey(any(), any())(any()))
       .thenReturn(if(sessionExists) {
         if(keyExists) {
-          Future("testData")
+          Future(Some("testData"))
         } else {
-          Future.failed(new SessionKeyNotFoundException(""))
+          Future(None)
         }
       } else {
         Future.failed(new MissingSessionException("No Session"))
       })
   }
 
-  def mockUpdateDataKey(updateFailed: Boolean): OngoingStubbing[Future[MongoUpdatedResponse]] = {
+  def mockUpdateDataKey(updateFailed: Boolean): OngoingStubbing[Future[Seq[(String, String)]]] = {
     when(mockSessionService.updateDataKey(any(), any()))
-      .thenReturn(Future(if(updateFailed) MongoFailedUpdate else MongoSuccessUpdate))
+      .thenReturn(Future(if(updateFailed) Seq("key" -> MongoFailedUpdate.toString) else Seq("key" -> MongoSuccessUpdate.toString)))
   }
 
   def mockDestroySessionRecord(destroyed: Boolean): OngoingStubbing[Future[Boolean]] = {

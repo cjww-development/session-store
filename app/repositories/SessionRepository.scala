@@ -17,13 +17,12 @@
 
 package repositories
 
-import javax.inject.Inject
-
 import com.cjwwdev.logging.Logging
 import com.cjwwdev.mongo.DatabaseRepository
 import com.cjwwdev.mongo.connection.ConnectionSettings
 import com.cjwwdev.mongo.responses._
-import models.{Session, SessionTimestamps, UpdateSet}
+import javax.inject.Inject
+import models.{Session, SessionTimestamps}
 import play.api.Configuration
 import play.api.libs.json.{JsValue, OFormat}
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -48,25 +47,25 @@ trait SessionRepository extends DatabaseRepository with Logging {
 
   private def sessionIdSelector(sessionId: String) = BSONDocument("sessionId" -> sessionId)
 
-  private def buildUpdateDocument(updateSet: UpdateSet) = BSONDocument(
+  private def buildUpdateDocument(key: String, data: String) = BSONDocument(
     "$set" -> BSONDocument(
-      s"data.${updateSet.key}" -> updateSet.data,
+      s"data.$key" -> data,
       "modifiedDetails.lastModified" -> BSONDocument(
         "$date" -> Session.getDateTime.getMillis
       )
     )
   )
 
-  private def buildNewSession(sessionId: String, contextId: String) = Session(
+  private def buildNewSession(sessionId: String) = Session(
     sessionId       = sessionId,
-    data            = Map("contextId" -> contextId),
+    data            = Map.empty[String, String],
     modifiedDetails = SessionTimestamps(Session.getDateTime, Session.getDateTime)
   )
 
-  def cacheData(sessionId : String, data : String): Future[MongoCreateResponse] = {
+  def cacheData(sessionId : String): Future[MongoCreateResponse] = {
     for {
       col <- collection
-      res <- col.insert(buildNewSession(sessionId, data))
+      res <- col.insert(buildNewSession(sessionId))
     } yield if(res.ok) {
       logger.info(s"[cacheData] : Data was successfully created in ${col.name} for sessionId $sessionId")
       MongoSuccessCreate
@@ -105,16 +104,16 @@ trait SessionRepository extends DatabaseRepository with Logging {
     } yield res
   }
 
-  def updateSession(sessionId: String, updateSet: UpdateSet)(implicit format: OFormat[Session]): Future[MongoUpdatedResponse] = {
+  def updateSession(sessionId: String, key: String, data: String)(implicit format: OFormat[Session]): Future[(String, String)] = {
     for {
       col <- collection
-      res <- col.update(sessionIdSelector(sessionId), buildUpdateDocument(updateSet))
+      res <- col.update(sessionIdSelector(sessionId), buildUpdateDocument(key, data))
     } yield if(res.ok) {
       logger.info(s"[updateSession] : Successfully updated session for session id $sessionId")
-      MongoSuccessUpdate
+      key -> MongoSuccessUpdate.toString
     } else {
       logger.error(s"[updateSession] : There was a problem updating session for session id $sessionId")
-      MongoFailedUpdate
+      key -> MongoFailedUpdate.toString
     }
   }
 

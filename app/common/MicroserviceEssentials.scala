@@ -18,7 +18,6 @@
 package common
 
 import javax.inject.Inject
-
 import com.cjwwdev.auth.backend.BaseAuth
 import com.cjwwdev.filters.RequestLoggingFilter
 import com.cjwwdev.http.headers.HttpHeaders
@@ -30,7 +29,7 @@ import com.kenshoo.play.metrics.MetricsFilter
 import models.Session
 import org.joda.time.{DateTime, Interval}
 import play.api.http.DefaultHttpFilters
-import play.api.libs.json.OFormat
+import play.api.libs.json._
 import play.api.mvc.{Controller, Request, Result}
 import repositories.SessionRepository
 
@@ -65,6 +64,12 @@ trait BackController extends Controller with RequestParsers with IdentifierValid
   private val validateTimestamps: DateTime => Boolean = lastModified => !(new Interval(lastModified, DateTime.now).toDuration.getStandardHours >= 1)
 
   val NoContentWithBody: String => Result = msg => new Status(NO_CONTENT)(msg)
+
+  val mapReads: Reads[Map[String, String]] = new Reads[Map[String, String]] {
+    override def reads(json: JsValue): JsResult[Map[String, String]] = {
+      JsSuccess(json.as[Map[String, String]])
+    }
+  }
 }
 
 class EnabledFilters @Inject()(loggingFilter: RequestLoggingFilter, metricsFilter: MetricsFilter)

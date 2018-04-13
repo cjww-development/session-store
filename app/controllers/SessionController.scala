@@ -17,19 +17,16 @@
 
 package controllers
 
-import javax.inject.Inject
-
 import com.cjwwdev.config.ConfigurationLoader
-import com.cjwwdev.mongo.responses.{MongoFailedUpdate, MongoSuccessUpdate}
-import com.cjwwdev.security.encryption.DataSecurity
-import common.{BackController, MissingSessionException, SessionKeyNotFoundException}
-import models.UpdateSet
+import com.cjwwdev.mongo.responses.MongoSuccessUpdate
+import common.{BackController, MissingSessionException}
+import javax.inject.Inject
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
 import repositories.SessionRepository
 import services.SessionService
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 class SessionControllerImpl @Inject()(val sessionService: SessionService,
                                       val sessionRepository: SessionRepository,
@@ -39,36 +36,43 @@ trait SessionController extends BackController {
 
   val sessionService: SessionService
 
-  def cache(sessionId: String): Action[String] = Action.async(parse.text) { implicit request =>
+  def initialiseSession(sessionId: String): Action[String] = Action.async(parse.text) { implicit request =>
     applicationVerification {
       validateAs(SESSION, sessionId) {
-        sessionService.cacheData(sessionId, request.body) map { cached =>
+        sessionService.cacheData(sessionId) map { cached =>
           if(cached) Created else InternalServerError(s"There was a problem caching the session data for session $sessionId")
         }
       }
     }
   }
 
-  def getEntry(sessionId: String, key: String): Action[AnyContent] = Action.async { implicit request =>
+  def getEntry(sessionId: String, key: Option[String]): Action[AnyContent] = Action.async { implicit request =>
     applicationVerification {
       validateSession(sessionId) { session =>
-        sessionService.getByKey(session.sessionId, key) map { data =>
-          Ok(data)
-        } recover {
-          case _: SessionKeyNotFoundException => NoContentWithBody(s"No data found for session key $key under session $sessionId")
-          case _: MissingSessionException     => NotFound(s"No session found for session $sessionId")
+        key match {
+          case Some(dataKey) => sessionService.getByKey(session.sessionId, dataKey) map {
+            _.fold(NoContentWithBody(s"No data found for session key $key under session $sessionId"))(Ok(_))
+          } recover {
+            case _: MissingSessionException => NotFound(s"No session found for session $sessionId")
+          }
+          case None => sessionService.getSession(sessionId) map {
+            _.fold(NotFound(s"No session found for session $sessionId"))(session => Ok(Json.toJson(session)))
+          }
         }
       }
     }
   }
 
-  def updateSession(sessionId: String): Action[String] = Action.async(parse.text) { implicit request =>
+  def updateSession(sessionId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     applicationVerification {
       validateSession(sessionId) { session =>
-        withJsonBody[UpdateSet](UpdateSet.standardFormat) { updateData =>
-          sessionService.updateDataKey(session.sessionId, updateData) map {
-            case MongoSuccessUpdate => Created
-            case MongoFailedUpdate  => InternalServerError(s"There was a problem updating the session data for session $sessionId")
+        val updateData = request.body.as[Map[String, String]](mapReads)
+        sessionService.updateDataKey(session.sessionId, updateData) map { resp =>
+          val noFailures = resp.forall{ case (_, r) => r.equals(MongoSuccessUpdate.toString)}
+          if(noFailures) {
+            Ok(Json.toJson(resp.toMap))
+          } else {
+            InternalServerError(Json.toJson(resp.toMap))
           }
         }
       }
@@ -79,16 +83,8 @@ trait SessionController extends BackController {
     applicationVerification {
       validateSession(sessionId) { session =>
         sessionService.destroySessionRecord(session.sessionId) map { destroyed =>
-          if (destroyed) Ok else InternalServerError(s"There was a problem destroying the session $sessionId")
+          if (destroyed) NoContent else InternalServerError(s"There was a problem destroying the session $sessionId")
         }
-      }
-    }
-  }
-
-  def getContextId(sessionId: String): Action[AnyContent] = Action.async { implicit request =>
-    applicationVerification {
-      validateSession(sessionId) { session =>
-        Future.successful(Ok(session.data("contextId")))
       }
     }
   }
