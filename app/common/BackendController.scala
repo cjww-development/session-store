@@ -17,18 +17,13 @@
 
 package common
 
-import javax.inject.Inject
 import com.cjwwdev.auth.backend.BaseAuth
-import com.cjwwdev.filters.RequestLoggingFilter
 import com.cjwwdev.http.headers.HttpHeaders
 import com.cjwwdev.identifiers.IdentifierValidation
-import com.cjwwdev.implicits.ImplicitHandlers
-import com.cjwwdev.mongo.indexes.RepositoryIndexer
 import com.cjwwdev.request.RequestParsers
-import com.kenshoo.play.metrics.MetricsFilter
+import com.cjwwdev.responses.ApiResponse
 import models.Session
 import org.joda.time.{DateTime, Interval}
-import play.api.http.DefaultHttpFilters
 import play.api.libs.json._
 import play.api.mvc.{Controller, Request, Result}
 import repositories.SessionRepository
@@ -36,49 +31,46 @@ import repositories.SessionRepository
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait BackController extends Controller with RequestParsers with IdentifierValidation with BaseAuth with HttpHeaders with ImplicitHandlers {
+trait BackendController extends Controller with RequestParsers with IdentifierValidation with BaseAuth with HttpHeaders with ApiResponse {
   val sessionRepository: SessionRepository
 
   protected def validateSession(id: String)(continue: Session => Future[Result])(implicit format: OFormat[Session], request: Request[_]): Future[Result] = {
     validateAs(SESSION, id) {
       sessionRepository.validateSession(id) flatMap { if(_) {
-       sessionRepository.getSession(id) flatMap(_.fold(logWithForbidden("[validateSession] - Session is invalid: action forbidden"))(
+       sessionRepository.getSession(id) flatMap(_.fold(logWithForbidden(id, "[validateSession] - Session is invalid: action forbidden"))(
          session => if(validateTimestamps(session.modifiedDetails.lastModified)) continue(session) else destroySession(id)
        ))
       } else {
-        logWithForbidden("[validateSession] - Session doesn't exist, action forbidden")
+        logWithForbidden(id, "[validateSession] - Session doesn't exist, action forbidden")
       }}
     }
   }
 
-  private def logWithForbidden(msg: String): Future[Result] = {
+  private def logWithForbidden(sessionId: String, msg: String)(implicit request: Request[_]): Future[Result] = {
     logger.warn(msg)
-    Future.successful(Forbidden)
+    withFutureJsonResponseBody(FORBIDDEN, msg) { json =>
+      Future(Forbidden(json))
+    }
   }
 
   private def destroySession(sessionId: String)(implicit request: Request[_]): Future[Result] = {
     logger.warn("[validateSession]: Session has timed out, action forbidden")
-    sessionRepository.removeSession(sessionId) map(_ => Forbidden(s"Session $sessionId has timed out action forbidden"))
+    sessionRepository.removeSession(sessionId).flatMap { _ =>
+      withFutureJsonResponseBody(FORBIDDEN, s"Session $sessionId has timed out action forbidden") { json =>
+        Future(Forbidden(json))
+      }
+    }
   }
 
   private val validateTimestamps: DateTime => Boolean = lastModified => !(new Interval(lastModified, DateTime.now).toDuration.getStandardHours >= 1)
 
-  val NoContentWithBody: String => Result = msg => new Status(NO_CONTENT)(msg)
+  val NoContentWithBody: JsValue => Result = msg => new Status(NO_CONTENT)(msg)
 
   val mapReads: Reads[Map[String, String]] = new Reads[Map[String, String]] {
     override def reads(json: JsValue): JsResult[Map[String, String]] = {
       JsSuccess(json.as[Map[String, String]])
     }
   }
+
+  val DUPLICATE_ERR_CODE = 11000
 }
-
-class EnabledFilters @Inject()(loggingFilter: RequestLoggingFilter, metricsFilter: MetricsFilter)
-  extends DefaultHttpFilters(loggingFilter, metricsFilter)
-
-class RepositoryIndexerImpl @Inject()(sessionRepository: SessionRepository) extends RepositoryIndexer {
-  override val repositories = Seq(sessionRepository)
-  runIndexing
-}
-
-class SessionKeyNotFoundException(msg: String) extends Exception(msg)
-class MissingSessionException(msg: String) extends Exception(msg)

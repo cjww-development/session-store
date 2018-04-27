@@ -18,20 +18,13 @@
 package controllers
 
 import com.cjwwdev.http.headers.HeaderPackage
-import com.cjwwdev.implicits.ImplicitHandlers
-import helpers.auth.AuthBuilder
+import com.cjwwdev.implicits.ImplicitDataSecurity._
 import helpers.controllers.ControllerSpec
-import helpers.repositories.MockSessionRepository
-import helpers.services.MockSessionService
-import play.api.libs.json.Json
+import play.api.libs.json.{JsString, Json}
 import play.api.test.FakeRequest
+import reactivemongo.core.errors.DatabaseException
 
-class SessionControllerSpec
-  extends ControllerSpec
-    with MockSessionService
-    with MockSessionRepository
-    with ImplicitHandlers
-    with AuthBuilder {
+class SessionControllerSpec extends ControllerSpec {
 
   val testController = new SessionController {
     override val sessionService    = mockSessionService
@@ -39,7 +32,7 @@ class SessionControllerSpec
   }
 
   "initialiseSession" should {
-    val cacheRequest = FakeRequest()
+    val cacheRequest = FakeRequest("POST", "/")
       .withHeaders(
         "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
         CONTENT_TYPE   -> TEXT
@@ -47,20 +40,45 @@ class SessionControllerSpec
 
     "return an ok" when {
       "the session has been validated and the request body data has been cached" in {
-        mockCacheData(true)
+        mockCacheData(session = Some(testSession))
 
         assertFutureResult(testController.initialiseSession(testSessionId)(cacheRequest)) { result =>
           status(result) mustBe CREATED
+          evaluateJsonResponse(POST, CREATED, Json.toJson(testSession))(notError = true)(contentAsJson(result))
         }
       }
     }
 
     "return an internal server error" when {
       "the session has been validated but there was a problem caching the data" in {
-        mockCacheData(false)
+        mockCacheData(session = None)
 
         assertFutureResult(testController.initialiseSession(testSessionId)(cacheRequest)) { result =>
           status(result) mustBe INTERNAL_SERVER_ERROR
+          evaluateJsonResponse(
+            POST,
+            INTERNAL_SERVER_ERROR,
+            JsString(s"There was a problem caching the session data for session $testSessionId")
+          )(notError = false)(contentAsJson(result))
+        }
+      }
+    }
+
+    "return a BadRequest" when {
+      "there is already a session with a duplicate sessionId" in {
+        mockCacheData(session = None, exception = Some(new DatabaseException {
+          override def originalDocument = ???
+          override def code: Option[Int] = Some(11000)
+          override def message: String = "Duplicate key"
+        }))
+
+        assertFutureResult(testController.initialiseSession(testSessionId)(cacheRequest)) { result =>
+          status(result) mustBe BAD_REQUEST
+          evaluateJsonResponse(
+            POST,
+            BAD_REQUEST,
+            JsString(s"A session already exists against sessionId $testSessionId")
+          )(notError = false)(contentAsJson(result))
         }
       }
     }
@@ -79,7 +97,24 @@ class SessionControllerSpec
 
         runActionWithAuth(testController.getEntry(testSessionId, Some("testKey")), getEntryRequest, Some(testSession)) { result =>
           status(result) mustBe OK
-          contentAsString(result) mustBe "testData"
+          evaluateJsonResponse(
+            GET,
+            OK,
+            JsString("testData")
+          )(notError = true)(contentAsJson(result))
+        }
+      }
+
+      "an entire session was found" in {
+        mockGetServiceSession(session = Some(testSession))
+
+        runActionWithAuth(testController.getEntry(testSessionId, None), getEntryRequest, Some(testSession)) { result =>
+          status(result) mustBe OK
+          evaluateJsonResponse(
+            GET,
+            OK,
+            Json.toJson(testSession)
+          )(notError = true)(contentAsJson(result))
         }
       }
     }
@@ -90,6 +125,34 @@ class SessionControllerSpec
 
         runActionWithAuth(testController.getEntry(testSessionId, Some("testKey")), getEntryRequest, Some(testSession)) { result =>
           status(result) mustBe NO_CONTENT
+        }
+      }
+    }
+
+    "return a NotFound" when {
+      "when no session can be found" in {
+        mockGetKey(sessionExists = false, keyExists = false)
+
+        runActionWithAuth(testController.getEntry(testSessionId, Some("testKey")), getEntryRequest, Some(testSession)) { result =>
+          status(result) mustBe NOT_FOUND
+          evaluateJsonResponse(
+            GET,
+            NOT_FOUND,
+            JsString(s"No session found for session $testSessionId")
+          )(notError = false)(contentAsJson(result))
+        }
+      }
+
+      "when no session can be found and no key is specified" in {
+        mockGetServiceSession(session = None)
+
+        runActionWithAuth(testController.getEntry(testSessionId, None), getEntryRequest, Some(testSession)) { result =>
+          status(result) mustBe NOT_FOUND
+          evaluateJsonResponse(
+            GET,
+            NOT_FOUND,
+            JsString(s"No session found for session $testSessionId")
+          )(notError = false)(contentAsJson(result))
         }
       }
     }

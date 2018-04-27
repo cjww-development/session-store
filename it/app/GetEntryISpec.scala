@@ -18,6 +18,8 @@
 package app
 
 import com.cjwwdev.http.headers.HeaderPackage
+import com.cjwwdev.implicits.ImplicitDataSecurity._
+import play.api.libs.json.{JsString, Json}
 import reactivemongo.bson.BSONDocument
 import reactivemongo.play.json._
 import utils.IntegrationSpec
@@ -26,7 +28,9 @@ class GetEntryISpec extends IntegrationSpec {
   s"/session/$sessionId/data?key=contextId" should {
     "return an Ok with body" when {
       "data has been found with the key" in {
-        await(sessionRepo.collection.flatMap(_.update(BSONDocument("sessionId" -> generateTestSystemId(SESSION)), BSONDocument("$set" -> BSONDocument("data.contextId" -> contextId)))))
+        await(sessionRepo.collection.flatMap(
+          _.update(BSONDocument("sessionId" -> generateTestSystemId(SESSION)), BSONDocument("$set" -> BSONDocument("data.contextId" -> contextId)))
+        ))
 
         val request = client(s"$testAppUrl/session/$sessionId/data?key=contextId")
           .withHeaders(
@@ -36,7 +40,12 @@ class GetEntryISpec extends IntegrationSpec {
 
         val result = await(request)
         result.status mustBe OK
-        result.body   mustBe contextId
+        evaluateJsonResponse(
+          GET,
+          OK,
+          sessionId,
+          JsString(contextId)
+        )(notError = true)(Json.parse(result.body))
       }
     }
 

@@ -30,7 +30,7 @@ class ServiceBindings extends AbstractModule {
   override def configure(): Unit = {
     bind(classOf[ConfigurationLoader]).to(classOf[ConfigurationLoaderImpl]).asEagerSingleton()
     bind(classOf[SessionRepository]).to(classOf[SessionRepositoryImpl]).asEagerSingleton()
-    bind(classOf[RepositoryIndexer]).to(classOf[RepositoryIndexerImpl]).asEagerSingleton()
+    bind(classOf[RepositoryIndexer]).to(classOf[SessionStoreIndexing]).asEagerSingleton()
     bind(classOf[SessionService]).to(classOf[SessionServiceImpl]).asEagerSingleton()
     bind(classOf[SessionController]).to(classOf[SessionControllerImpl]).asEagerSingleton()
     bind(classOf[ScheduledJob]).to(classOf[SessionCleanJob]).asEagerSingleton()

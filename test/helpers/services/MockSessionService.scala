@@ -19,6 +19,7 @@ package helpers.services
 
 import com.cjwwdev.mongo.responses._
 import common.{MissingSessionException, SessionKeyNotFoundException}
+import models.Session
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
 import org.mockito.stubbing.OngoingStubbing
@@ -40,9 +41,15 @@ trait MockSessionService extends BeforeAndAfterEach with MockitoSugar {
     reset(mockSessionService)
   }
 
-  def mockCacheData(cached: Boolean): OngoingStubbing[Future[Boolean]] = {
+  def mockCacheData(session: Option[Session], exception: Option[Exception] = None): OngoingStubbing[Future[Option[Session]]] = {
     when(mockSessionService.cacheData(any()))
-      .thenReturn(Future(cached))
+      .thenReturn(
+        if(exception.isDefined) {
+          Future.failed(exception.get)
+        } else {
+          Future(session)
+        }
+      )
   }
 
   def mockGetKey(sessionExists: Boolean, keyExists: Boolean): OngoingStubbing[Future[Option[String]]] = {
@@ -56,6 +63,11 @@ trait MockSessionService extends BeforeAndAfterEach with MockitoSugar {
       } else {
         Future.failed(new MissingSessionException("No Session"))
       })
+  }
+
+  def mockGetServiceSession(session: Option[Session]): OngoingStubbing[Future[Option[Session]]] = {
+    when(mockSessionService.getSession(any()))
+      .thenReturn(Future(session))
   }
 
   def mockUpdateDataKey(updateFailed: Boolean): OngoingStubbing[Future[Seq[(String, String)]]] = {

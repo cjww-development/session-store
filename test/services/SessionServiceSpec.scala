@@ -17,16 +17,14 @@
 
 package services
 
-import com.cjwwdev.implicits.ImplicitHandlers
 import com.cjwwdev.mongo.responses._
 import common.MissingSessionException
-import helpers.repositories.MockSessionRepository
 import helpers.services.ServicesSpec
 import models.{Session, SessionTimestamps}
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 
-class SessionServiceSpec extends ServicesSpec with MockSessionRepository with ImplicitHandlers {
+class SessionServiceSpec extends ServicesSpec {
   val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
   override val dateTime: DateTime   = dateFormat.parseDateTime("2017-04-13 19:59:14")
 
@@ -44,19 +42,21 @@ class SessionServiceSpec extends ServicesSpec with MockSessionRepository with Im
   }
 
   "cacheData" should {
-    "return true if data is successfully saved" in {
+    "return a session if data is successfully saved" in {
       mockCacheDataRepository(true)
+      mockGetSession(session = Some(testSession))
 
       awaitAndAssert(testService.cacheData(testSessionId)) {
-        _ mustBe true
+        _ mustBe Some(testSession)
       }
     }
 
-    "return false if there was a problem saving" in {
+    "return no session if there was a problem saving" in {
       mockCacheDataRepository(false)
+      mockGetSession(session = None)
 
       awaitAndAssert(testService.cacheData(testSessionId)) {
-        _ mustBe false
+        _ mustBe None
       }
     }
   }

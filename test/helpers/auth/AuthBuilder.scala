@@ -50,7 +50,7 @@ trait AuthBuilder extends PlaySpec with MockSessionRepository with MockitoSugar 
   }
 
   def runActionWithAuthJsonBody(action: Action[JsValue], request: FakeRequest[JsValue], session: Option[Session])
-                                 (testAction: Future[Result] => Assertion): Assertion = {
+                               (testAction: Future[Result] => Assertion): Assertion = {
     mockValidateSession(true)
     mockGetSession(session)
     testAction(action(request))

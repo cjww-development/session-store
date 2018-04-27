@@ -19,10 +19,11 @@ package controllers
 
 import com.cjwwdev.config.ConfigurationLoader
 import com.cjwwdev.mongo.responses.MongoSuccessUpdate
-import common.{BackController, MissingSessionException}
+import common.{BackendController, MissingSessionException}
 import javax.inject.Inject
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
+import reactivemongo.core.errors.DatabaseException
 import repositories.SessionRepository
 import services.SessionService
 
@@ -32,15 +33,28 @@ class SessionControllerImpl @Inject()(val sessionService: SessionService,
                                       val sessionRepository: SessionRepository,
                                       val configurationLoader: ConfigurationLoader) extends SessionController
 
-trait SessionController extends BackController {
+trait SessionController extends BackendController {
 
   val sessionService: SessionService
 
   def initialiseSession(sessionId: String): Action[String] = Action.async(parse.text) { implicit request =>
     applicationVerification {
       validateAs(SESSION, sessionId) {
-        sessionService.cacheData(sessionId) map { cached =>
-          if(cached) Created else InternalServerError(s"There was a problem caching the session data for session $sessionId")
+        sessionService.cacheData(sessionId) map { session =>
+          if(session.isDefined) {
+            withJsonResponseBody(CREATED, Json.toJson(session.get)) { json =>
+              Created(json)
+            }
+          } else {
+            withJsonResponseBody(INTERNAL_SERVER_ERROR, s"There was a problem caching the session data for session $sessionId") { json =>
+              InternalServerError(json)
+            }
+          }
+        } recover {
+          case e: DatabaseException if e.code.contains(DUPLICATE_ERR_CODE) =>
+            withJsonResponseBody(BAD_REQUEST, s"A session already exists against sessionId $sessionId") { json =>
+              BadRequest(json)
+            }
         }
       }
     }
@@ -50,13 +64,29 @@ trait SessionController extends BackController {
     applicationVerification {
       validateSession(sessionId) { session =>
         key match {
-          case Some(dataKey) => sessionService.getByKey(session.sessionId, dataKey) map {
-            _.fold(NoContentWithBody(s"No data found for session key $key under session $sessionId"))(Ok(_))
+          case Some(dataKey) => sessionService.getByKey(session.sessionId, dataKey) map { data =>
+            val (status, body) = data.fold((NO_CONTENT, s"No data found for session key ${key.get} under session $sessionId"))((OK, _))
+            withJsonResponseBody(status, body) { json =>
+              status match {
+                case NO_CONTENT => NoContentWithBody(json)
+                case OK         => Ok(json)
+              }
+            }
           } recover {
-            case _: MissingSessionException => NotFound(s"No session found for session $sessionId")
+            case _: MissingSessionException => withJsonResponseBody(NOT_FOUND, s"No session found for session $sessionId") { json =>
+              NotFound(json)
+            }
           }
-          case None => sessionService.getSession(sessionId) map {
-            _.fold(NotFound(s"No session found for session $sessionId"))(session => Ok(Json.toJson(session)))
+          case None => sessionService.getSession(sessionId) map { session =>
+            val (status, body) = session.fold[(Int, JsValue)]((NOT_FOUND, JsString(s"No session found for session $sessionId")))(
+              session => (OK, Json.toJson(session))
+            )
+            withJsonResponseBody(status, body) { json =>
+              status match {
+                case NOT_FOUND => NotFound(json)
+                case OK        => Ok(json)
+              }
+            }
           }
         }
       }
@@ -69,10 +99,12 @@ trait SessionController extends BackController {
         val updateData = request.body.as[Map[String, String]](mapReads)
         sessionService.updateDataKey(session.sessionId, updateData) map { resp =>
           val noFailures = resp.forall{ case (_, r) => r.equals(MongoSuccessUpdate.toString)}
-          if(noFailures) {
-            Ok(Json.toJson(resp.toMap))
-          } else {
-            InternalServerError(Json.toJson(resp.toMap))
+          val status = if(noFailures) OK else INTERNAL_SERVER_ERROR
+          withJsonResponseBody(status, Json.toJson(resp.toMap)) { json =>
+            status match {
+              case OK                    => Ok(json)
+              case INTERNAL_SERVER_ERROR => InternalServerError(json)
+            }
           }
         }
       }
@@ -83,7 +115,13 @@ trait SessionController extends BackController {
     applicationVerification {
       validateSession(sessionId) { session =>
         sessionService.destroySessionRecord(session.sessionId) map { destroyed =>
-          if (destroyed) NoContent else InternalServerError(s"There was a problem destroying the session $sessionId")
+          val (status, body) = if(destroyed) (NO_CONTENT, "") else (INTERNAL_SERVER_ERROR, "")
+          withJsonResponseBody(status, body) { json =>
+            status match {
+              case NO_CONTENT            => NoContentWithBody(json)
+              case INTERNAL_SERVER_ERROR => InternalServerError(json)
+            }
+          }
         }
       }
     }

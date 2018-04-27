@@ -18,6 +18,7 @@
 package app
 
 import com.cjwwdev.http.headers.HeaderPackage
+import com.cjwwdev.implicits.ImplicitDataSecurity._
 import utils.IntegrationSpec
 
 class CacheDataISpec extends IntegrationSpec {

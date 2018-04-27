@@ -33,11 +33,11 @@ class SessionServiceImpl @Inject()(val sessionRepo: SessionRepository) extends S
 trait SessionService extends Logging {
   val sessionRepo: SessionRepository
 
-  def cacheData(sessionId: String): Future[Boolean] = {
-    sessionRepo.cacheData(sessionId) map {
-      case MongoSuccessCreate   => true
-      case MongoFailedCreate    => false
-    }
+  def cacheData(sessionId: String): Future[Option[Session]] = {
+    for {
+      _       <- sessionRepo.cacheData(sessionId)
+      session <- sessionRepo.getSession(sessionId)
+    } yield session
   }
 
   def getByKey(sessionId : String, key : String)(implicit format : OFormat[Session]) : Future[Option[String]] = {
@@ -59,8 +59,8 @@ trait SessionService extends Logging {
 
   def destroySessionRecord(sessionId : String): Future[Boolean] = {
     sessionRepo.removeSession(sessionId) map {
-      case MongoSuccessDelete   => true
-      case MongoFailedDelete    => false
+      case MongoSuccessDelete => true
+      case MongoFailedDelete  => false
     }
   }
 

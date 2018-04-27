@@ -18,6 +18,7 @@
 package app
 
 import com.cjwwdev.http.headers.HeaderPackage
+import com.cjwwdev.implicits.ImplicitDataSecurity._
 import play.api.libs.json.Json
 import utils.IntegrationSpec
 

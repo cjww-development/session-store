@@ -15,25 +15,13 @@
  *
  */
 
-package helpers.other
+package common
 
-import com.cjwwdev.implicits.ImplicitDataSecurity._
-import models.{Session, SessionTimestamps}
-import org.joda.time.DateTime
+import com.cjwwdev.mongo.indexes.RepositoryIndexer
+import javax.inject.Inject
+import repositories.SessionRepository
 
-trait Fixtures extends TestDataGenerator {
-
-  val testSessionId = generateTestSystemId(SESSION)
-  val testContextId = generateTestSystemId(CONTEXT)
-
-  val dateTime = DateTime.now
-
-  val testSession = Session(
-    sessionId = testSessionId,
-    data      = Map("contextId" -> testContextId.encrypt),
-    modifiedDetails = SessionTimestamps(
-      created      = dateTime,
-      lastModified = dateTime
-    )
-  )
+class SessionStoreIndexing @Inject()(sessionRepository: SessionRepository) extends RepositoryIndexer {
+  override val repositories = Seq(sessionRepository)
+  runIndexing
 }
