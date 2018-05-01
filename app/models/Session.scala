@@ -31,6 +31,7 @@ object SessionTimestamps extends TimeFormat {
   )(SessionTimestamps.apply, unlift(SessionTimestamps.unapply))
 }
 
+
 case class Session(sessionId : String,
                    data : Map[String, String],
                    modifiedDetails : SessionTimestamps) {

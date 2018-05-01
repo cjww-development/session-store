@@ -23,6 +23,7 @@ import common.{BackendController, MissingSessionException}
 import javax.inject.Inject
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
+import reactivemongo.core.actors.Exceptions.PrimaryUnavailableException
 import reactivemongo.core.errors.DatabaseException
 import repositories.SessionRepository
 import services.SessionService
@@ -54,6 +55,10 @@ trait SessionController extends BackendController {
           case e: DatabaseException if e.code.contains(DUPLICATE_ERR_CODE) =>
             withJsonResponseBody(BAD_REQUEST, s"A session already exists against sessionId $sessionId") { json =>
               BadRequest(json)
+            }
+          case _: PrimaryUnavailableException =>
+            withJsonResponseBody(INTERNAL_SERVER_ERROR, s"There was a problem caching the session data for session $sessionId") { json =>
+              InternalServerError(json)
             }
         }
       }
@@ -99,8 +104,9 @@ trait SessionController extends BackendController {
         val updateData = request.body.as[Map[String, String]](mapReads)
         sessionService.updateDataKey(session.sessionId, updateData) map { resp =>
           val noFailures = resp.forall{ case (_, r) => r.equals(MongoSuccessUpdate.toString)}
+          val respToStringVal = resp.map{ case (e, r) => if(r.equals(MongoSuccessUpdate.toString)) (e, "Updated") else (e, "Problem updating")}
           val status = if(noFailures) OK else INTERNAL_SERVER_ERROR
-          withJsonResponseBody(status, Json.toJson(resp.toMap)) { json =>
+          withJsonResponseBody(status, Json.toJson(respToStringVal.toMap)) { json =>
             status match {
               case OK                    => Ok(json)
               case INTERNAL_SERVER_ERROR => InternalServerError(json)
@@ -115,7 +121,7 @@ trait SessionController extends BackendController {
     applicationVerification {
       validateSession(sessionId) { session =>
         sessionService.destroySessionRecord(session.sessionId) map { destroyed =>
-          val (status, body) = if(destroyed) (NO_CONTENT, "") else (INTERNAL_SERVER_ERROR, "")
+          val (status, body) = if(destroyed) (NO_CONTENT, "The session has been deleted") else (INTERNAL_SERVER_ERROR, "There was problem deleting the specified session")
           withJsonResponseBody(status, body) { json =>
             status match {
               case NO_CONTENT            => NoContentWithBody(json)
