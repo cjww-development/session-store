@@ -98,10 +98,10 @@ trait SessionController extends BackendController {
     }
   }
 
-  def updateSession(sessionId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def updateSession(sessionId: String): Action[String] = Action.async(parse.text) { implicit request =>
     applicationVerification {
       validateSession(sessionId) { session =>
-        val updateData = request.body.as[Map[String, String]](mapReads)
+        val updateData = Json.parse(request.body).as[Map[String, String]](mapReads)
         sessionService.updateDataKey(session.sessionId, updateData) map { resp =>
           val noFailures = resp.forall{ case (_, r) => r.equals(MongoSuccessUpdate.toString)}
           val respToStringVal = resp.map{ case (e, r) => if(r.equals(MongoSuccessUpdate.toString)) (e, "Updated") else (e, "Problem updating")}
