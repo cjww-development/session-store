@@ -29,7 +29,7 @@ class UpdateSessionISpec extends IntegrationSpec {
         val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
-            CONTENT_TYPE   -> JSON
+            CONTENT_TYPE -> TEXT
           ).patch(Json.parse(
             """
               |{
@@ -53,7 +53,7 @@ class UpdateSessionISpec extends IntegrationSpec {
         val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
-            CONTENT_TYPE   -> JSON
+            CONTENT_TYPE -> TEXT
           )
           .patch(Json.parse(
             """
@@ -71,7 +71,7 @@ class UpdateSessionISpec extends IntegrationSpec {
       "the request is not authorised" in {
         val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
-            CONTENT_TYPE -> JSON
+            CONTENT_TYPE -> TEXT
           )
           .patch(Json.parse(
             """

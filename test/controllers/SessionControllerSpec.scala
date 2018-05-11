@@ -161,16 +161,13 @@ class SessionControllerSpec extends ControllerSpec {
   val updateSessionRequest = FakeRequest()
     .withHeaders(
       "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
-      CONTENT_TYPE   -> TEXT,
-      "testHeader"   -> "qwerty"
+      CONTENT_TYPE   -> TEXT
     ).withBody(
-      Json.parse(
-        """
-          |{
-          |   "testUpdateKey" : "testUpdateData"
-          |}
-        """.stripMargin
-      )
+      """
+        |{
+        |   "testUpdateKey" : "testUpdateData"
+        |}
+      """.stripMargin
     )
 
   "updateSession" should {
@@ -178,7 +175,7 @@ class SessionControllerSpec extends ControllerSpec {
       "the session has been updated" in {
         mockUpdateDataKey(false)
 
-        runActionWithAuthJsonBody(testController.updateSession(testSessionId), updateSessionRequest, Some(testSession)) { result =>
+        runActionWithAuthStringBody(testController.updateSession(testSessionId), updateSessionRequest, Some(testSession)) { result =>
           status(result) mustBe OK
         }
       }
@@ -188,7 +185,7 @@ class SessionControllerSpec extends ControllerSpec {
       "there was a problem updating the session" in {
         mockUpdateDataKey(true)
 
-        runActionWithAuthJsonBody(testController.updateSession(testSessionId), updateSessionRequest, Some(testSession)) { result =>
+        runActionWithAuthStringBody(testController.updateSession(testSessionId), updateSessionRequest, Some(testSession)) { result =>
           status(result) mustBe INTERNAL_SERVER_ERROR
         }
       }
