@@ -15,16 +15,7 @@
  *
  */
 
-package models
+package common
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-
-case class UpdateSet(key : String, data : String)
-
-object UpdateSet {
-  implicit val standardFormat: OFormat[UpdateSet] = (
-    (__ \ "key").format[String] and
-    (__ \ "data").format[String]
-  )(UpdateSet.apply, unlift(UpdateSet.unapply))
-}
+class SessionKeyNotFoundException(msg: String) extends Exception(msg)
+class MissingSessionException(msg: String) extends Exception(msg)

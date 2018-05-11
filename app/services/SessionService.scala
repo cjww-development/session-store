@@ -17,12 +17,11 @@
 
 package services
 
-import javax.inject.Inject
-
 import com.cjwwdev.logging.Logging
 import com.cjwwdev.mongo.responses._
-import common.{MissingSessionException, SessionKeyNotFoundException}
-import models.{Session, UpdateSet}
+import common.MissingSessionException
+import javax.inject.Inject
+import models.Session
 import play.api.libs.json.OFormat
 import repositories.SessionRepository
 
@@ -34,30 +33,34 @@ class SessionServiceImpl @Inject()(val sessionRepo: SessionRepository) extends S
 trait SessionService extends Logging {
   val sessionRepo: SessionRepository
 
-  def cacheData(sessionId: String, contextId: String): Future[Boolean] = {
-    sessionRepo.cacheData(sessionId, contextId) map {
-      case MongoSuccessCreate   => true
-      case MongoFailedCreate    => false
-    }
+  def cacheData(sessionId: String): Future[Option[Session]] = {
+    for {
+      _       <- sessionRepo.cacheData(sessionId)
+      session <- sessionRepo.getSession(sessionId)
+    } yield session
   }
 
-  def getByKey(sessionId : String, key : String)(implicit format : OFormat[Session]) : Future[String] = {
+  def getByKey(sessionId : String, key : String)(implicit format : OFormat[Session]) : Future[Option[String]] = {
     for {
       session <- sessionRepo.getSession(sessionId)
       _       <- sessionRepo.renewSession(sessionId)
-    } yield session.fold(throw new MissingSessionException(s"No session for sessionId $sessionId")) { session =>
-      session.data.getOrElse(key, throw new SessionKeyNotFoundException(s"No data found for key $key for sessionId $sessionId"))
-    }
+    } yield session.fold(throw new MissingSessionException(s"No session for sessionId $sessionId"))(_.data.get(key))
   }
 
-  def updateDataKey(sessionId : String, updateSet: UpdateSet): Future[MongoUpdatedResponse] = {
-    sessionRepo.updateSession(sessionId, updateSet)
+  def getSession(sessionId: String): Future[Option[Session]] = {
+    sessionRepo.getSession(sessionId)
+  }
+
+  def updateDataKey(sessionId : String, updateSet: Map[String, String]): Future[Seq[(String, String)]] = {
+    Future.sequence(
+      updateSet.toList.map(update => sessionRepo.updateSession(sessionId, update._1, update._2))
+    )
   }
 
   def destroySessionRecord(sessionId : String): Future[Boolean] = {
     sessionRepo.removeSession(sessionId) map {
-      case MongoSuccessDelete   => true
-      case MongoFailedDelete    => false
+      case MongoSuccessDelete => true
+      case MongoFailedDelete  => false
     }
   }
 

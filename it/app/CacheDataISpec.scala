@@ -18,33 +18,30 @@
 package app
 
 import com.cjwwdev.http.headers.HeaderPackage
-import play.api.test.Helpers._
+import com.cjwwdev.implicits.ImplicitDataSecurity._
 import utils.IntegrationSpec
 
 class CacheDataISpec extends IntegrationSpec {
-  s"/session/$sessionId/cache" should {
+  s"/session/$sessionId/ (initialise)" should {
     "return a created" when {
       "a new session has been created in session-store" in {
-        val request = client(s"$testAppUrl/session/$sessionId/cache")
+        val request = client(s"$testAppUrl/session/$sessionId")
           .withHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
-          )
-          .post(
-            contextId.encrypt
-          )
+          ).post("")
 
         val result = await(request)
         result.status mustBe CREATED
 
         val userInfo = await(sessionRepo.getSession(sessionId))
-        userInfo.get.data("contextId").decrypt mustBe contextId
+        userInfo.get.data mustBe Map.empty[String, String]
       }
     }
 
     "return a forbidden" when {
       "the request is not authorised" in {
-        val result = await(client(s"$testAppUrl/session/$sessionId/cache").post(""))
+        val result = await(client(s"$testAppUrl/session/$sessionId").post(""))
         result.status mustBe FORBIDDEN
       }
     }

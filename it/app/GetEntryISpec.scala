@@ -18,14 +18,21 @@
 package app
 
 import com.cjwwdev.http.headers.HeaderPackage
-import play.api.test.Helpers._
+import com.cjwwdev.implicits.ImplicitDataSecurity._
+import play.api.libs.json.{JsString, Json}
+import reactivemongo.bson.BSONDocument
+import reactivemongo.play.json._
 import utils.IntegrationSpec
 
 class GetEntryISpec extends IntegrationSpec {
-  s"/session/$sessionId/data/{userInfo}" should {
+  s"/session/$sessionId/data?key=contextId" should {
     "return an Ok with body" when {
       "data has been found with the key" in {
-        val request = client(s"$testAppUrl/session/$sessionId/data/contextId")
+        await(sessionRepo.collection.flatMap(
+          _.update(BSONDocument("sessionId" -> generateTestSystemId(SESSION)), BSONDocument("$set" -> BSONDocument("data.contextId" -> contextId)))
+        ))
+
+        val request = client(s"$testAppUrl/session/$sessionId/data?key=contextId")
           .withHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
@@ -33,13 +40,18 @@ class GetEntryISpec extends IntegrationSpec {
 
         val result = await(request)
         result.status mustBe OK
-        result.body.decrypt mustBe contextId
+        evaluateJsonResponse(
+          GET,
+          OK,
+          sessionId,
+          JsString(contextId)
+        )(notError = true)(Json.parse(result.body))
       }
     }
 
     "return a NoContent" when {
       "no data has been found against the key" in {
-        val request = client(s"$testAppUrl/session/$sessionId/data/invalid-key")
+        val request = client(s"$testAppUrl/session/$sessionId/data?key=invalid-key")
           .withHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
@@ -52,7 +64,7 @@ class GetEntryISpec extends IntegrationSpec {
 
     "return a Forbidden" when {
       "the request is not authorised" in {
-        val request = client(s"$testAppUrl/session/$sessionId/data/userInfo")
+        val request = client(s"$testAppUrl/session/$sessionId/data?key=userInfo")
           .withHeaders(CONTENT_TYPE -> TEXT)
           .get()
 

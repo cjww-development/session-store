@@ -17,19 +17,14 @@
 
 package services
 
-import com.cjwwdev.implicits.ImplicitHandlers
 import com.cjwwdev.mongo.responses._
 import common.MissingSessionException
-import helpers.other.{Fixtures, TestDataGenerator}
-import helpers.repositories.MockSessionRepository
 import helpers.services.ServicesSpec
-import models.{Session, SessionTimestamps, UpdateSet}
+import models.{Session, SessionTimestamps}
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 
-class SessionServiceSpec extends ServicesSpec with MockSessionRepository with ImplicitHandlers {
-  val testUpdateSet = UpdateSet("userInfo","testData")
-
+class SessionServiceSpec extends ServicesSpec {
   val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
   override val dateTime: DateTime   = dateFormat.parseDateTime("2017-04-13 19:59:14")
 
@@ -47,19 +42,21 @@ class SessionServiceSpec extends ServicesSpec with MockSessionRepository with Im
   }
 
   "cacheData" should {
-    "return true if data is successfully saved" in {
+    "return a session if data is successfully saved" in {
       mockCacheDataRepository(true)
+      mockGetSession(session = Some(testSession))
 
-      awaitAndAssert(testService.cacheData(testSessionId, "testContextId".encrypt)) {
-        _ mustBe true
+      awaitAndAssert(testService.cacheData(testSessionId)) {
+        _ mustBe Some(testSession)
       }
     }
 
-    "return false if there was a problem saving" in {
+    "return no session if there was a problem saving" in {
       mockCacheDataRepository(false)
+      mockGetSession(session = None)
 
-      awaitAndAssert(testService.cacheData(testSessionId, "testContextId".encrypt)) {
-        _ mustBe false
+      awaitAndAssert(testService.cacheData(testSessionId)) {
+        _ mustBe None
       }
     }
   }
@@ -71,7 +68,17 @@ class SessionServiceSpec extends ServicesSpec with MockSessionRepository with Im
       mockRenewSession(true)
 
       awaitAndAssert(testService.getByKey(testSessionId, "testKey")) {
-        _ mustBe "testData"
+        _ mustBe Some("testData")
+      }
+    }
+
+    "return None" in {
+      mockGetSession(Some(testSession))
+
+      mockRenewSession(true)
+
+      awaitAndAssert(testService.getByKey(testSessionId, "testInvalidKey")) {
+        _ mustBe None
       }
     }
 
@@ -84,13 +91,31 @@ class SessionServiceSpec extends ServicesSpec with MockSessionRepository with Im
     }
   }
 
+  "getSession" should {
+    "return some session" in {
+      mockGetSession(session = Some(testSession))
+
+      awaitAndAssert(testService.getSession(testSessionId)) {
+        _ mustBe Some(testSession)
+      }
+    }
+
+    "return None" in {
+      mockGetSession(session = None)
+
+      awaitAndAssert(testService.getSession(testSessionId)) {
+        _ mustBe None
+      }
+    }
+  }
+
   "updateDataKey" should {
     "return an UpdateWriteResult" when {
       "given a sessionID, a key and data" in {
         mockUpdateSession(true)
 
-        awaitAndAssert(testService.updateDataKey(testSessionId, testUpdateSet)) {
-          _ mustBe MongoSuccessUpdate
+        awaitAndAssert(testService.updateDataKey(testSessionId, Map("key" -> "testData"))) {
+          _ mustBe List("key" -> MongoSuccessUpdate.toString)
         }
       }
     }

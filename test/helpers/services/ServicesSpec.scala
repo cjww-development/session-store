@@ -18,6 +18,7 @@
 package helpers.services
 
 import com.cjwwdev.testing.common.FutureHelpers
+import helpers.repositories.MockSessionRepository
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 
@@ -25,3 +26,4 @@ trait ServicesSpec
   extends PlaySpec
     with MockitoSugar
     with FutureHelpers
+    with MockSessionRepository

@@ -17,13 +17,18 @@
 
 package utils
 
-import com.cjwwdev.implicits.ImplicitHandlers
+import java.time.LocalDateTime
+
 import com.cjwwdev.testing.integration.IntegrationTestSpec
 import com.cjwwdev.testing.integration.application.IntegrationApplication
+import com.cjwwdev.implicits.ImplicitJsValues._
+import org.scalatest.Assertion
+import play.api.http.HttpVerbs
+import play.api.libs.json.JsValue
 import play.api.libs.ws.WSRequest
 import repositories.SessionRepository
 
-trait IntegrationSpec extends IntegrationTestSpec with TestDataGenerator with ImplicitHandlers with IntegrationApplication {
+trait IntegrationSpec extends IntegrationTestSpec with TestDataGenerator with IntegrationApplication with HttpVerbs {
 
   override val currentAppBaseUrl = "session-store"
 
@@ -47,7 +52,7 @@ trait IntegrationSpec extends IntegrationTestSpec with TestDataGenerator with Im
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    await(sessionRepo.cacheData(sessionId, contextId.encrypt))
+    await(sessionRepo.cacheData(sessionId))
   }
 
   override protected def afterEach(): Unit = {
@@ -58,5 +63,19 @@ trait IntegrationSpec extends IntegrationTestSpec with TestDataGenerator with Im
   override protected def afterAll(): Unit = {
     super.afterAll()
     await(sessionRepo.collection.flatMap(_.drop(failIfNotFound = false)))
+  }
+
+  def evaluateJsonResponse(method: String, status: Int, sessionId: String, mainBody: JsValue)(notError: Boolean)(responseBody: JsValue): Assertion = {
+    responseBody.get[String]("method") mustBe method.toUpperCase
+    responseBody.get[Int]("status")    mustBe status
+    if(notError) {
+      responseBody.get[JsValue]("body") mustBe mainBody
+    } else {
+      responseBody.get[JsValue]("errorMessage") mustBe mainBody
+    }
+    val dateTime = LocalDateTime.parse(responseBody.getFirstMatch[String]("requestCompletedAt"))
+    dateTime.getYear       mustBe LocalDateTime.now.getYear
+    dateTime.getMonthValue mustBe LocalDateTime.now.getMonthValue
+    dateTime.getDayOfMonth mustBe LocalDateTime.now.getDayOfMonth
   }
 }
