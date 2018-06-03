@@ -15,7 +15,7 @@
  *
  */
 
-//import com.heroku.sbt.HerokuPlugin.autoImport.herokuAppName
+import com.heroku.sbt.HerokuPlugin.autoImport.herokuAppName
 import com.typesafe.config.ConfigFactory
 import sbt.Keys.{organization, version}
 import scoverage.ScoverageKeys
@@ -48,7 +48,7 @@ lazy val microservice = Project(appName, file("."))
     organization                                  :=  "com.cjww-dev.backends",
     resolvers                                     +=  "cjww-dev" at "http://dl.bintray.com/cjww-development/releases",
     libraryDependencies                           ++= AppDependencies(),
-    //herokuAppName              in Compile         :=  "cjww-session-store",
+    herokuAppName              in Compile         :=  "cjww-session-store",
     bintrayOrganization                           :=  Some("cjww-development"),
     bintrayReleaseOnPublish    in ThisBuild       :=  true,
     bintrayRepository                             :=  "releases",
