@@ -26,13 +26,12 @@ class DestroySessionISpec extends IntegrationSpec {
     "return an OK" when {
       "the session has been removed" in {
         val request = client(s"$testAppUrl/session/$sessionId")
-          .withHeaders(
+          .withHttpHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
-          )
-          .delete()
-        val result = await(request)
+          ).delete()
 
+        val result = await(request)
         result.status mustBe NO_CONTENT
 
         await(sessionRepo.getSession(sessionId)) mustBe None
@@ -44,24 +43,22 @@ class DestroySessionISpec extends IntegrationSpec {
         await(sessionRepo.removeSession(sessionId))
 
         val request = client(s"$testAppUrl/session/$sessionId")
-          .withHeaders(
+          .withHttpHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
-          )
-          .delete()
-        val result = await(request)
+          ).delete()
 
+        val result = await(request)
         result.status mustBe FORBIDDEN
       }
 
       "the request is not authorised" in {
         val request = client(s"$testAppUrl/session/$sessionId")
-          .withHeaders(
+          .withHttpHeaders(
             CONTENT_TYPE -> TEXT
-          )
-          .delete()
-        val result = await(request)
+          ).delete()
 
+        val result = await(request)
         result.status mustBe FORBIDDEN
       }
     }

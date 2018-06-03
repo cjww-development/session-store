@@ -52,12 +52,6 @@ trait ControllerSpec
     with AuthBuilder
     with HttpVerbs {
 
-  implicit val ec: ExecutionContext = global.prepare()
-
-  def assertFutureResult(result: => Future[Result])(assertions: Future[Result] => Assertion): Assertion = {
-    assertions(result)
-  }
-
   def evaluateJsonResponse(method: String, status: Int, mainBody: JsValue)(notError: Boolean)(responseBody: JsValue): Assertion = {
     responseBody.get[String]("method") mustBe method.toUpperCase
     responseBody.get[Int]("status")    mustBe status

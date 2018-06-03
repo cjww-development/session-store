@@ -17,22 +17,25 @@
 
 package common
 
-import com.cjwwdev.config.{ConfigurationLoader, ConfigurationLoaderImpl}
+import com.cjwwdev.config.{ConfigurationLoader, DefaultConfigurationLoader}
+import com.cjwwdev.health.{DefaultHealthController, HealthController}
 import com.cjwwdev.mongo.indexes.RepositoryIndexer
 import com.cjwwdev.scheduling.ScheduledJob
-import com.google.inject.AbstractModule
-import controllers.{SessionController, SessionControllerImpl}
+import controllers.{DefaultSessionController, SessionController}
 import jobs.SessionCleanJob
-import repositories.{SessionRepository, SessionRepositoryImpl}
-import services.{SessionService, SessionServiceImpl}
+import play.api.{Configuration, Environment}
+import play.api.inject.{Binding, Module}
+import repositories.{DefaultSessionRepository, SessionRepository}
+import services.{DefaultSessionService, SessionService}
 
-class ServiceBindings extends AbstractModule {
-  override def configure(): Unit = {
-    bind(classOf[ConfigurationLoader]).to(classOf[ConfigurationLoaderImpl]).asEagerSingleton()
-    bind(classOf[SessionRepository]).to(classOf[SessionRepositoryImpl]).asEagerSingleton()
-    bind(classOf[RepositoryIndexer]).to(classOf[SessionStoreIndexing]).asEagerSingleton()
-    bind(classOf[SessionService]).to(classOf[SessionServiceImpl]).asEagerSingleton()
-    bind(classOf[SessionController]).to(classOf[SessionControllerImpl]).asEagerSingleton()
-    bind(classOf[ScheduledJob]).to(classOf[SessionCleanJob]).asEagerSingleton()
-  }
+class ServiceBindings extends Module {
+  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = Seq(
+    bind(classOf[ConfigurationLoader]).to(classOf[DefaultConfigurationLoader]).eagerly(),
+    bind(classOf[SessionRepository]).to(classOf[DefaultSessionRepository]).eagerly(),
+    bind(classOf[RepositoryIndexer]).to(classOf[SessionStoreIndexing]).eagerly(),
+    bind(classOf[SessionService]).to(classOf[DefaultSessionService]).eagerly(),
+    bind(classOf[SessionController]).to(classOf[DefaultSessionController]).eagerly(),
+    bind(classOf[HealthController]).to(classOf[DefaultHealthController]).eagerly(),
+    bind(classOf[ScheduledJob]).to(classOf[SessionCleanJob]).eagerly()
+  )
 }

@@ -22,13 +22,15 @@ import com.cjwwdev.implicits.ImplicitDataSecurity._
 import helpers.controllers.ControllerSpec
 import play.api.libs.json.{JsString, Json}
 import play.api.test.FakeRequest
+import play.api.test.Helpers._
 import reactivemongo.core.errors.DatabaseException
 
 class SessionControllerSpec extends ControllerSpec {
 
   val testController = new SessionController {
-    override val sessionService    = mockSessionService
-    override val sessionRepository = mockSessionRepository
+    override protected def controllerComponents = stubControllerComponents()
+    override val sessionService                 = mockSessionService
+    override val sessionRepository              = mockSessionRepository
   }
 
   "initialiseSession" should {

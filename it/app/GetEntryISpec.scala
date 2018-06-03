@@ -33,7 +33,7 @@ class GetEntryISpec extends IntegrationSpec {
         ))
 
         val request = client(s"$testAppUrl/session/$sessionId/data?key=contextId")
-          .withHeaders(
+          .withHttpHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
           ).get()
@@ -52,7 +52,7 @@ class GetEntryISpec extends IntegrationSpec {
     "return a NoContent" when {
       "no data has been found against the key" in {
         val request = client(s"$testAppUrl/session/$sessionId/data?key=invalid-key")
-          .withHeaders(
+          .withHttpHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE   -> TEXT
           ).get()
@@ -65,7 +65,7 @@ class GetEntryISpec extends IntegrationSpec {
     "return a Forbidden" when {
       "the request is not authorised" in {
         val request = client(s"$testAppUrl/session/$sessionId/data?key=userInfo")
-          .withHeaders(CONTENT_TYPE -> TEXT)
+          .withHttpHeaders(CONTENT_TYPE -> TEXT)
           .get()
 
         val result = await(request)

@@ -28,7 +28,7 @@ import repositories.SessionRepository
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class SessionServiceImpl @Inject()(val sessionRepo: SessionRepository) extends SessionService
+class DefaultSessionService @Inject()(val sessionRepo: SessionRepository) extends SessionService
 
 trait SessionService extends Logging {
   val sessionRepo: SessionRepository

@@ -22,7 +22,7 @@ import com.cjwwdev.mongo.responses.MongoSuccessUpdate
 import common.{BackendController, MissingSessionException}
 import javax.inject.Inject
 import play.api.libs.json.{JsString, JsValue, Json}
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import reactivemongo.core.actors.Exceptions.PrimaryUnavailableException
 import reactivemongo.core.errors.DatabaseException
 import repositories.SessionRepository
@@ -30,9 +30,10 @@ import services.SessionService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class SessionControllerImpl @Inject()(val sessionService: SessionService,
-                                      val sessionRepository: SessionRepository,
-                                      val configurationLoader: ConfigurationLoader) extends SessionController
+class DefaultSessionController @Inject()(val sessionService: SessionService,
+                                         val sessionRepository: SessionRepository,
+                                         val configurationLoader: ConfigurationLoader,
+                                         val controllerComponents: ControllerComponents) extends SessionController
 
 trait SessionController extends BackendController {
 
@@ -103,8 +104,8 @@ trait SessionController extends BackendController {
       validateSession(sessionId) { session =>
         val updateData = Json.parse(request.body).as[Map[String, String]](mapReads)
         sessionService.updateDataKey(session.sessionId, updateData) map { resp =>
-          val noFailures = resp.forall{ case (_, r) => r.equals(MongoSuccessUpdate.toString)}
-          val respToStringVal = resp.map{ case (e, r) => if(r.equals(MongoSuccessUpdate.toString)) (e, "Updated") else (e, "Problem updating")}
+          val noFailures = resp.forall { case (_, r) => r.equals(MongoSuccessUpdate.toString) }
+          val respToStringVal = resp.map { case (e, r) => if(r.equals(MongoSuccessUpdate.toString)) (e, "Updated") else (e, "Problem updating") }
           val status = if(noFailures) OK else INTERNAL_SERVER_ERROR
           withJsonResponseBody(status, Json.toJson(respToStringVal.toMap)) { json =>
             status match {
@@ -121,7 +122,12 @@ trait SessionController extends BackendController {
     applicationVerification {
       validateSession(sessionId) { session =>
         sessionService.destroySessionRecord(session.sessionId) map { destroyed =>
-          val (status, body) = if(destroyed) (NO_CONTENT, "The session has been deleted") else (INTERNAL_SERVER_ERROR, "There was problem deleting the specified session")
+          val (status, body) = if(destroyed) {
+            (NO_CONTENT, "The session has been deleted")
+          } else {
+            (INTERNAL_SERVER_ERROR, "There was problem deleting the specified session")
+          }
+
           withJsonResponseBody(status, body) { json =>
             status match {
               case NO_CONTENT            => NoContentWithBody(json)
