@@ -32,7 +32,7 @@ import reactivemongo.play.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class SessionRepositoryImpl @Inject()(val config: Configuration) extends SessionRepository with ConnectionSettings
+class DefaultSessionRepository @Inject()(val config: Configuration) extends SessionRepository with ConnectionSettings
 
 trait SessionRepository extends DatabaseRepository with Logging {
 

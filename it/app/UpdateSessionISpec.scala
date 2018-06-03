@@ -27,7 +27,7 @@ class UpdateSessionISpec extends IntegrationSpec {
     "return an Ok" when {
       "the session has been updated" in {
         val request = client(s"$testAppUrl/session/$sessionId")
-          .withHeaders(
+          .withHttpHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE -> TEXT
           ).patch(Json.parse(
@@ -39,7 +39,6 @@ class UpdateSessionISpec extends IntegrationSpec {
           ))
 
         val result = await(request)
-
         result.status mustBe OK
 
         await(sessionRepo.getSession(sessionId)).get.data("testKey") mustBe "testData"
@@ -51,7 +50,7 @@ class UpdateSessionISpec extends IntegrationSpec {
         await(sessionRepo.removeSession(sessionId))
 
         val request = client(s"$testAppUrl/session/$sessionId")
-          .withHeaders(
+          .withHttpHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
             CONTENT_TYPE -> TEXT
           )
@@ -64,13 +63,12 @@ class UpdateSessionISpec extends IntegrationSpec {
           ))
 
         val result = await(request)
-
         result.status mustBe FORBIDDEN
       }
 
       "the request is not authorised" in {
         val request = client(s"$testAppUrl/session/$sessionId")
-          .withHeaders(
+          .withHttpHeaders(
             CONTENT_TYPE -> TEXT
           )
           .patch(Json.parse(
@@ -82,7 +80,6 @@ class UpdateSessionISpec extends IntegrationSpec {
           ))
 
         val result = await(request)
-
         result.status mustBe FORBIDDEN
       }
     }

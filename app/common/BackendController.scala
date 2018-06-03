@@ -25,13 +25,13 @@ import com.cjwwdev.responses.ApiResponse
 import models.Session
 import org.joda.time.{DateTime, Interval}
 import play.api.libs.json._
-import play.api.mvc.{Controller, Request, Result}
+import play.api.mvc._
 import repositories.SessionRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait BackendController extends Controller with RequestParsers with IdentifierValidation with BaseAuth with HttpHeaders with ApiResponse {
+trait BackendController extends BaseController with RequestParsers with IdentifierValidation with BaseAuth with HttpHeaders with ApiResponse {
   val sessionRepository: SessionRepository
 
   protected def validateSession(id: String)(continue: Session => Future[Result])(implicit format: OFormat[Session], request: Request[_]): Future[Result] = {
@@ -66,11 +66,7 @@ trait BackendController extends Controller with RequestParsers with IdentifierVa
 
   val NoContentWithBody: JsValue => Result = msg => new Status(NO_CONTENT)(msg)
 
-  val mapReads: Reads[Map[String, String]] = new Reads[Map[String, String]] {
-    override def reads(json: JsValue): JsResult[Map[String, String]] = {
-      JsSuccess(json.as[Map[String, String]])
-    }
-  }
+  val mapReads: Reads[Map[String, String]] = Reads[Map[String, String]](json => JsSuccess(json.as[Map[String, String]]))
 
   val DUPLICATE_ERR_CODE = 11000
 }

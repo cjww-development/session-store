@@ -15,8 +15,7 @@
  *
  */
 
-import TestPhases.oneForkedJvmPerTest
-import com.heroku.sbt.HerokuPlugin.autoImport.herokuAppName
+//import com.heroku.sbt.HerokuPlugin.autoImport.herokuAppName
 import com.typesafe.config.ConfigFactory
 import sbt.Keys.{organization, version}
 import scoverage.ScoverageKeys
@@ -45,17 +44,16 @@ lazy val microservice = Project(appName, file("."))
   .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
   .settings(
     version                                       :=  btVersion,
-    scalaVersion                                  :=  "2.11.12",
+    scalaVersion                                  :=  "2.12.6",
     organization                                  :=  "com.cjww-dev.backends",
     resolvers                                     +=  "cjww-dev" at "http://dl.bintray.com/cjww-development/releases",
     libraryDependencies                           ++= AppDependencies(),
-    herokuAppName              in Compile         :=  "cjww-session-store",
+    //herokuAppName              in Compile         :=  "cjww-session-store",
     bintrayOrganization                           :=  Some("cjww-development"),
     bintrayReleaseOnPublish    in ThisBuild       :=  true,
     bintrayRepository                             :=  "releases",
     bintrayOmitLicense                            :=  true,
     fork                       in IntegrationTest :=  false,
-    testGrouping               in IntegrationTest :=  oneForkedJvmPerTest((definedTests in IntegrationTest).value),
     unmanagedSourceDirectories in IntegrationTest :=  (baseDirectory in IntegrationTest)(base => Seq(base / "it")).value,
     parallelExecution          in IntegrationTest :=  false,
     fork                       in Test            :=  true,
