@@ -18,6 +18,7 @@
 package helpers.other
 
 import com.cjwwdev.implicits.ImplicitDataSecurity._
+import com.cjwwdev.security.obfuscation.Obfuscation._
 import models.{Session, SessionTimestamps}
 import org.joda.time.DateTime
 

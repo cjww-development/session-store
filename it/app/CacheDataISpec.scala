@@ -27,7 +27,7 @@ class CacheDataISpec extends IntegrationSpec {
       "a new session has been created in session-store" in {
         val request = client(s"$testAppUrl/session/$sessionId")
           .withHttpHeaders(
-            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
+            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", Some(sessionId)).encrypt,
             CONTENT_TYPE   -> TEXT
           ).post("")
 

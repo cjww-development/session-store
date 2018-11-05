@@ -32,8 +32,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class DefaultSessionController @Inject()(val sessionService: SessionService,
                                          val sessionRepository: SessionRepository,
-                                         val configurationLoader: ConfigurationLoader,
-                                         val controllerComponents: ControllerComponents) extends SessionController
+                                         val config: ConfigurationLoader,
+                                         val controllerComponents: ControllerComponents) extends SessionController {
+  override val appId: String = config.getServiceId(config.get[String]("appName"))
+}
 
 trait SessionController extends BackendController {
 
