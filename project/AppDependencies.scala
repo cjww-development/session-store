@@ -23,10 +23,11 @@ object AppDependencies {
 }
 
 private object CompileDependencies {
-  private val reactiveMongoVersion = "7.1.0"
-  private val authVersion          = "4.1.0"
-  private val appUtilsVersion      = "4.1.0"
-  private val serviceHealthVersion = "0.2.0"
+  private val reactiveMongoVersion     = "7.2.2"
+  private val authVersion              = "4.6.0"
+  private val appUtilsVersion          = "4.5.2"
+  private val serviceHealthVersion     = "0.3.1"
+  private val featureManagementVersion = "1.3.2"
 
   private val includedDeps: Seq[ModuleID] = Seq(
     guice
@@ -36,7 +37,8 @@ private object CompileDependencies {
     "com.cjww-dev.libs" % "reactive-mongo_2.12"        % reactiveMongoVersion,
     "com.cjww-dev.libs" % "authorisation_2.12"         % authVersion,
     "com.cjww-dev.libs" % "application-utilities_2.12" % appUtilsVersion,
-    "com.cjww-dev.libs" % "service-health_2.12"        % serviceHealthVersion
+    "com.cjww-dev.libs" % "service-health_2.12"        % serviceHealthVersion,
+    "com.cjww-dev.libs" % "feature-management_2.12"    % featureManagementVersion
   )
 
   def apply(): Seq[ModuleID] = appDependencies

@@ -44,7 +44,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
   .settings(
     version                                       :=  btVersion,
-    scalaVersion                                  :=  "2.12.6",
+    scalaVersion                                  :=  "2.12.7",
     organization                                  :=  "com.cjww-dev.apps",
     resolvers                                     +=  "cjww-dev" at "http://dl.bintray.com/cjww-development/releases",
     libraryDependencies                           ++= AppDependencies(),

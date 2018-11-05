@@ -28,15 +28,16 @@ import reactivemongo.core.errors.DatabaseException
 class SessionControllerSpec extends ControllerSpec {
 
   val testController = new SessionController {
-    override protected def controllerComponents = stubControllerComponents()
-    override val sessionService                 = mockSessionService
-    override val sessionRepository              = mockSessionRepository
+    override val appId                                 = "testAppId"
+    override protected def controllerComponents        = stubControllerComponents()
+    override val sessionService                        = mockSessionService
+    override val sessionRepository                     = mockSessionRepository
   }
 
   "initialiseSession" should {
     val cacheRequest = FakeRequest("POST", "/")
       .withHeaders(
-        "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
+        "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", Some(testSessionId)).encrypt,
         CONTENT_TYPE   -> TEXT
       ).withBody("")
 
@@ -89,7 +90,7 @@ class SessionControllerSpec extends ControllerSpec {
   "getEntry" should {
     val getEntryRequest = FakeRequest()
       .withHeaders(
-        "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
+        "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", Some(testSessionId)).encrypt,
         CONTENT_TYPE   -> TEXT
       )
 
@@ -162,7 +163,7 @@ class SessionControllerSpec extends ControllerSpec {
 
   val updateSessionRequest = FakeRequest()
     .withHeaders(
-      "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
+      "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", Some(testSessionId)).encrypt,
       CONTENT_TYPE   -> TEXT
     ).withBody(
       """
@@ -197,7 +198,7 @@ class SessionControllerSpec extends ControllerSpec {
   "destroySession" should {
     val destroySessionRequest = FakeRequest()
       .withHeaders(
-        "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", testSessionId).encryptType,
+        "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", Some(testSessionId)).encrypt,
         CONTENT_TYPE   -> TEXT
       )
 

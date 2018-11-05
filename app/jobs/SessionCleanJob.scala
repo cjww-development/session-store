@@ -18,27 +18,28 @@
 package jobs
 
 import javax.inject.Inject
-
 import akka.actor.ActorSystem
 import com.cjwwdev.config.ConfigurationLoader
-import com.cjwwdev.scheduling.{JobComplete, JobCompletionStatus, JobFailed, ScheduledJob}
+import com.cjwwdev.scheduling._
 import services.SessionService
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class SessionCleanJob @Inject()(val actorSystem: ActorSystem,
-                                configurationLoader: ConfigurationLoader,
-                                sessionService: SessionService,
+                                val config: ConfigurationLoader,
+                                val sessionService: SessionService,
                                 implicit val executionContext: ExecutionContext) extends ScheduledJob {
   lazy val jobName  = "session-cleaner"
-  lazy val enabled  = configurationLoader.loadedConfig.underlying.getBoolean(s"jobs.$jobName.enabled")
-  lazy val interval = configurationLoader.loadedConfig.underlying.getLong(s"jobs.$jobName.interval")
+  lazy val enabled  = config.get[Boolean](s"jobs.$jobName.enabled")
+  lazy val interval = config.get[Long](s"jobs.$jobName.interval")
 
-  override def scheduledJob: Future[JobCompletionStatus] = {
+  def scheduledJob: Future[JobCompletionStatus] = {
     sessionService.cleanseSessions map {
       _ => JobComplete
     } recover {
       case _ => JobFailed
     }
   }
+
+  if(enabled) jobRunner(scheduledJob) else Future(JobDisabled)
 }

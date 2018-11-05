@@ -34,7 +34,7 @@ class GetEntryISpec extends IntegrationSpec {
 
         val request = client(s"$testAppUrl/session/$sessionId/data?key=contextId")
           .withHttpHeaders(
-            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
+            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", Some(sessionId)).encrypt,
             CONTENT_TYPE   -> TEXT
           ).get()
 
@@ -53,7 +53,7 @@ class GetEntryISpec extends IntegrationSpec {
       "no data has been found against the key" in {
         val request = client(s"$testAppUrl/session/$sessionId/data?key=invalid-key")
           .withHttpHeaders(
-            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", sessionId).encryptType,
+            "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", Some(sessionId)).encrypt,
             CONTENT_TYPE   -> TEXT
           ).get()
 
