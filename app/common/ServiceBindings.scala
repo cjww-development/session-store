@@ -12,12 +12,12 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
  */
 
 package common
 
 import com.cjwwdev.config.{ConfigurationLoader, DefaultConfigurationLoader}
+import com.cjwwdev.featuremanagement.models.Features
 import com.cjwwdev.health.{DefaultHealthController, HealthController}
 import com.cjwwdev.mongo.indexes.RepositoryIndexer
 import com.cjwwdev.scheduling.ScheduledJob
@@ -29,13 +29,14 @@ import repositories.{DefaultSessionRepository, SessionRepository}
 import services.{DefaultSessionService, SessionService}
 
 class ServiceBindings extends Module {
-  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = Seq(
+  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =Seq(
     bind(classOf[ConfigurationLoader]).to(classOf[DefaultConfigurationLoader]).eagerly(),
     bind(classOf[SessionRepository]).to(classOf[DefaultSessionRepository]).eagerly(),
     bind(classOf[RepositoryIndexer]).to(classOf[SessionStoreIndexing]).eagerly(),
     bind(classOf[SessionService]).to(classOf[DefaultSessionService]).eagerly(),
     bind(classOf[SessionController]).to(classOf[DefaultSessionController]).eagerly(),
     bind(classOf[HealthController]).to(classOf[DefaultHealthController]).eagerly(),
-    bind(classOf[ScheduledJob]).to(classOf[SessionCleanJob]).eagerly()
+    bind(classOf[ScheduledJob]).to(classOf[SessionCleanJob]).eagerly(),
+    bind(classOf[Features]).to(classOf[FeatureDef]).eagerly()
   )
 }
