@@ -20,6 +20,7 @@ package jobs
 import javax.inject.Inject
 import akka.actor.ActorSystem
 import com.cjwwdev.config.ConfigurationLoader
+
 import com.cjwwdev.scheduling._
 import services.SessionService
 

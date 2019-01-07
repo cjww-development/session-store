@@ -23,17 +23,13 @@ import com.cjwwdev.implicits.ImplicitJsValues._
 import com.cjwwdev.testing.common.FutureHelpers
 import helpers.auth.AuthBuilder
 import helpers.other.Fixtures
-import helpers.services.MockSessionService
+import helpers.services.{MockFeatureService, MockSessionService}
 import org.scalatest.Assertion
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.http._
 import play.api.libs.json.JsValue
-import play.api.mvc.Result
 import play.api.test._
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
 
 trait ControllerSpec
   extends PlaySpec
@@ -49,6 +45,7 @@ trait ControllerSpec
     with FutureHelpers
     with Fixtures
     with MockSessionService
+    with MockFeatureService
     with AuthBuilder
     with HttpVerbs {
 

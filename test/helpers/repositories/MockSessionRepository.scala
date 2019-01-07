@@ -28,7 +28,6 @@ import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import repositories.SessionRepository
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait MockSessionRepository extends BeforeAndAfterEach with MockitoSugar with Fixtures {
@@ -42,37 +41,44 @@ trait MockSessionRepository extends BeforeAndAfterEach with MockitoSugar with Fi
   }
 
   def mockCacheDataRepository(success: Boolean): OngoingStubbing[Future[MongoCreateResponse]] = {
-    when(mockSessionRepository.cacheData(any()))
-      .thenReturn(Future(if(success) MongoSuccessCreate else MongoFailedCreate))
+    when(mockSessionRepository.cacheData(any())(any(), any()))
+      .thenReturn(Future.successful(if(success) MongoSuccessCreate else MongoFailedCreate))
   }
 
   def mockGetSession(session: Option[Session]): OngoingStubbing[Future[Option[Session]]] = {
     when(mockSessionRepository.getSession(any())(any()))
-      .thenReturn(Future(session))
+      .thenReturn(Future.successful(session))
   }
 
   def mockRenewSession(success: Boolean): OngoingStubbing[Future[MongoUpdatedResponse]] = {
-    when(mockSessionRepository.renewSession(any())(any()))
-      .thenReturn(Future(if(success) MongoSuccessUpdate else MongoFailedUpdate))
+    when(mockSessionRepository.renewSession(any())(any(), any()))
+      .thenReturn(Future.successful(if(success) MongoSuccessUpdate else MongoFailedUpdate))
   }
 
   def mockGetSessions(sessions: List[Session]): OngoingStubbing[Future[List[Session]]] = {
     when(mockSessionRepository.getSessions(any()))
-      .thenReturn(Future(sessions))
+      .thenReturn(Future.successful(sessions))
   }
 
   def mockUpdateSession(success: Boolean): OngoingStubbing[Future[(String, String)]] = {
-    when(mockSessionRepository.updateSession(any(), any(), any())(any()))
-      .thenReturn(Future(if(success) "key" -> MongoSuccessUpdate.toString else "key" -> MongoFailedUpdate.toString))
+    when(mockSessionRepository.updateSession(any(), any(), any())(any(), any()))
+      .thenReturn(
+        Future.successful(if(success) "key" -> MongoSuccessUpdate.toString else "key" -> MongoFailedUpdate.toString)
+      )
   }
 
   def mockRemoveSession(success: Boolean): OngoingStubbing[Future[MongoDeleteResponse]] = {
-    when(mockSessionRepository.removeSession(any()))
-      .thenReturn(Future(if(success) MongoSuccessDelete else MongoFailedDelete))
+    when(mockSessionRepository.removeSession(any())(any(), any()))
+      .thenReturn(Future.successful(if(success) MongoSuccessDelete else MongoFailedDelete))
+  }
+
+  def mockCleanSession(success: Boolean): OngoingStubbing[Future[MongoDeleteResponse]] = {
+    when(mockSessionRepository.cleanSession(any())(any()))
+      .thenReturn(Future.successful(if(success) MongoSuccessDelete else MongoFailedDelete))
   }
 
   def mockValidateSession(validated: Boolean): OngoingStubbing[Future[Boolean]] = {
-    when(mockSessionRepository.validateSession(any()))
-      .thenReturn(Future(validated))
+    when(mockSessionRepository.validateSession(any())(any()))
+      .thenReturn(Future.successful(validated))
   }
 }

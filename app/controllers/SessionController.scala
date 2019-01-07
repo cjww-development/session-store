@@ -18,8 +18,9 @@
 package controllers
 
 import com.cjwwdev.config.ConfigurationLoader
+import com.cjwwdev.featuremanagement.services.FeatureService
 import com.cjwwdev.mongo.responses.MongoSuccessUpdate
-import common.{BackendController, MissingSessionException}
+import common.BackendController
 import javax.inject.Inject
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
@@ -28,12 +29,14 @@ import reactivemongo.core.errors.DatabaseException
 import repositories.SessionRepository
 import services.SessionService
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
 class DefaultSessionController @Inject()(val sessionService: SessionService,
                                          val sessionRepository: SessionRepository,
                                          val config: ConfigurationLoader,
-                                         val controllerComponents: ControllerComponents) extends SessionController {
+                                         val controllerComponents: ControllerComponents,
+                                         val featureService: FeatureService,
+                                         implicit val ec: ExecutionContext) extends SessionController {
   override val appId: String = config.getServiceId(config.get[String]("appName"))
 }
 
@@ -73,27 +76,21 @@ trait SessionController extends BackendController {
       validateSession(sessionId) { session =>
         key match {
           case Some(dataKey) => sessionService.getByKey(session.sessionId, dataKey) map { data =>
-            val (status, body) = data.fold((NO_CONTENT, s"No data found for session key ${key.get} under session $sessionId"))((OK, _))
-            withJsonResponseBody(status, body) { json =>
-              status match {
-                case NO_CONTENT => NoContentWithBody(json)
-                case OK         => Ok(json)
-              }
+            val (status, body) = data match {
+              case Left(value) => value.fold(NO_CONTENT -> s"No data found for session key $dataKey")(OK -> _)
+              case Right(_)    => NOT_FOUND -> s"No session found for sessionId $sessionId"
             }
-          } recover {
-            case _: MissingSessionException => withJsonResponseBody(NOT_FOUND, s"No session found for session $sessionId") { json =>
-              NotFound(json)
+
+            withJsonResponseBody(status, body) {
+              Status(status)(_)
             }
           }
           case None => sessionService.getSession(sessionId) map { session =>
-            val (status, body) = session.fold[(Int, JsValue)]((NOT_FOUND, JsString(s"No session found for session $sessionId")))(
+            val (status, body) = session.fold[(Int, JsValue)]((NOT_FOUND, JsString(s"No session found for sessionId $sessionId")))(
               session => (OK, Json.toJson(session))
             )
-            withJsonResponseBody(status, body) { json =>
-              status match {
-                case NOT_FOUND => NotFound(json)
-                case OK        => Ok(json)
-              }
+            withJsonResponseBody(status, body) {
+              Status(status)(_)
             }
           }
         }
@@ -109,11 +106,8 @@ trait SessionController extends BackendController {
           val noFailures = resp.forall { case (_, r) => r.equals(MongoSuccessUpdate.toString) }
           val respToStringVal = resp.map { case (e, r) => if(r.equals(MongoSuccessUpdate.toString)) (e, "Updated") else (e, "Problem updating") }
           val status = if(noFailures) OK else INTERNAL_SERVER_ERROR
-          withJsonResponseBody(status, Json.toJson(respToStringVal.toMap)) { json =>
-            status match {
-              case OK                    => Ok(json)
-              case INTERNAL_SERVER_ERROR => InternalServerError(json)
-            }
+          withJsonResponseBody(status, Json.toJson(respToStringVal.toMap)) {
+            Status(status)(_)
           }
         }
       }
@@ -130,11 +124,8 @@ trait SessionController extends BackendController {
             (INTERNAL_SERVER_ERROR, "There was problem deleting the specified session")
           }
 
-          withJsonResponseBody(status, body) { json =>
-            status match {
-              case NO_CONTENT            => NoContentWithBody(json)
-              case INTERNAL_SERVER_ERROR => InternalServerError(json)
-            }
+          withJsonResponseBody(status, body) {
+            Status(status)(_)
           }
         }
       }

@@ -19,6 +19,7 @@ package common
 import com.cjwwdev.config.{ConfigurationLoader, DefaultConfigurationLoader}
 import com.cjwwdev.featuremanagement.models.Features
 import com.cjwwdev.health.{DefaultHealthController, HealthController}
+import com.cjwwdev.logging.filters.{DefaultRequestLoggingFilter, RequestLoggingFilter}
 import com.cjwwdev.mongo.indexes.RepositoryIndexer
 import com.cjwwdev.scheduling.ScheduledJob
 import controllers.{DefaultSessionController, SessionController}
@@ -37,6 +38,7 @@ class ServiceBindings extends Module {
     bind(classOf[SessionController]).to(classOf[DefaultSessionController]).eagerly(),
     bind(classOf[HealthController]).to(classOf[DefaultHealthController]).eagerly(),
     bind(classOf[ScheduledJob]).to(classOf[SessionCleanJob]).eagerly(),
-    bind(classOf[Features]).to(classOf[FeatureDef]).eagerly()
+    bind(classOf[Features]).to(classOf[FeatureDef]).eagerly(),
+    bind(classOf[RequestLoggingFilter]).to(classOf[DefaultRequestLoggingFilter]).eagerly()
   )
 }

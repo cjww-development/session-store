@@ -25,6 +25,7 @@ import reactivemongo.play.json._
 import utils.IntegrationSpec
 
 class GetEntryISpec extends IntegrationSpec {
+
   s"/session/$sessionId/data?key=contextId" should {
     "return an Ok with body" when {
       "data has been found with the key" in {
@@ -59,17 +60,6 @@ class GetEntryISpec extends IntegrationSpec {
 
         val result = await(request)
         result.status mustBe NO_CONTENT
-      }
-    }
-
-    "return a Forbidden" when {
-      "the request is not authorised" in {
-        val request = client(s"$testAppUrl/session/$sessionId/data?key=userInfo")
-          .withHttpHeaders(CONTENT_TYPE -> TEXT)
-          .get()
-
-        val result = await(request)
-        result.status mustBe FORBIDDEN
       }
     }
   }

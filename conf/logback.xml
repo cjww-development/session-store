@@ -1,12 +1,10 @@
 <!-- https://www.playframework.com/documentation/latest/SettingsLogger -->
 <configuration debug="false">
-    <conversionRule conversionWord="coloredLevel" converterClass="com.cjwwdev.logging.converters.ColouredLoggerLevel" />
+    <conversionRule conversionWord="coloredLevel" converterClass="com.cjwwdev.logging.converters.ColouredLogLevelConversion" />
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>${application.home:-.}/logs/session-store-logs.log</file>
-        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%level timestamp=[%date{ISO8601}] thread=[%thread] logger=[%logger] %message %replace(exception=[%xException]){'^exception=\[\]$',''}%n</pattern>
-        </encoder>
+        <file>${application.home:-.}/logs/application-json.log</file>
+        <encoder class="com.cjwwdev.logging.encoders.JsonLoggingEncoding" />
     </appender>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -28,8 +26,7 @@
     <logger name="repositories"   level="INFO" />
     <logger name="Logging filter" level="INFO" />
 
-    <logger name="reactivemongo.api.MongoDriver"                      level="OFF"/>
-    <logger name="play.modules.reactivemongo.DefaultReactiveMongoApi" level="OFF"/>
+    <logger name="reactivemongo.api.MongoDriver" level="OFF" />
 
     <!-- Off these ones as they are annoying, and anyway we manage configuration ourselves -->
     <logger name="com.avaje.ebean.common.PropertyMapLoader"            level="OFF" />
