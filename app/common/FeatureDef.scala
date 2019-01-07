@@ -20,5 +20,11 @@ import com.cjwwdev.featuremanagement.models.Features
 import javax.inject.Inject
 
 class FeatureDef @Inject extends Features {
-  override val allFeatures: List[String] = List()
+  override val allFeatures: List[String] = List(
+    Features.applicationVerification
+  )
+}
+
+object Features {
+  val applicationVerification: String = "app-verification"
 }

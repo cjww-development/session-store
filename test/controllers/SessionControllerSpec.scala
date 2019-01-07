@@ -12,27 +12,35 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
  */
 
 package controllers
 
+import com.cjwwdev.featuremanagement.models.Feature
+import com.cjwwdev.featuremanagement.services.FeatureService
 import com.cjwwdev.http.headers.HeaderPackage
 import com.cjwwdev.implicits.ImplicitDataSecurity._
+import common.Features
 import helpers.controllers.ControllerSpec
 import play.api.libs.json.{JsString, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import reactivemongo.core.errors.DatabaseException
 
+import scala.concurrent.ExecutionContext
+
 class SessionControllerSpec extends ControllerSpec {
 
   val testController = new SessionController {
+    override implicit val ec: ExecutionContext         = ExecutionContext.Implicits.global
+    override val featureService: FeatureService        = mockFeatureService
     override val appId                                 = "testAppId"
     override protected def controllerComponents        = stubControllerComponents()
     override val sessionService                        = mockSessionService
     override val sessionRepository                     = mockSessionRepository
   }
+
+  mockGetState(feature = Feature(Features.applicationVerification, state = false))
 
   "initialiseSession" should {
     val cacheRequest = FakeRequest("POST", "/")
@@ -43,6 +51,8 @@ class SessionControllerSpec extends ControllerSpec {
 
     "return an ok" when {
       "the session has been validated and the request body data has been cached" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockCacheData(session = Some(testSession))
 
         assertFutureResult(testController.initialiseSession(testSessionId)(cacheRequest)) { result =>
@@ -54,6 +64,8 @@ class SessionControllerSpec extends ControllerSpec {
 
     "return an internal server error" when {
       "the session has been validated but there was a problem caching the data" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockCacheData(session = None)
 
         assertFutureResult(testController.initialiseSession(testSessionId)(cacheRequest)) { result =>
@@ -69,6 +81,8 @@ class SessionControllerSpec extends ControllerSpec {
 
     "return a BadRequest" when {
       "there is already a session with a duplicate sessionId" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockCacheData(session = None, exception = Some(new DatabaseException {
           override def originalDocument = ???
           override def code: Option[Int] = Some(11000)
@@ -96,6 +110,8 @@ class SessionControllerSpec extends ControllerSpec {
 
     "return an ok" when {
       "data has been found against the given key and session id" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockGetKey(sessionExists = true, keyExists = true)
 
         runActionWithAuth(testController.getEntry(testSessionId, Some("testKey")), getEntryRequest, Some(testSession)) { result =>
@@ -109,6 +125,8 @@ class SessionControllerSpec extends ControllerSpec {
       }
 
       "an entire session was found" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockGetServiceSession(session = Some(testSession))
 
         runActionWithAuth(testController.getEntry(testSessionId, None), getEntryRequest, Some(testSession)) { result =>
@@ -124,6 +142,8 @@ class SessionControllerSpec extends ControllerSpec {
 
     "return a No content" when {
       "no data has been found against the key and session id" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockGetKey(sessionExists = true, keyExists = false)
 
         runActionWithAuth(testController.getEntry(testSessionId, Some("testKey")), getEntryRequest, Some(testSession)) { result =>
@@ -134,6 +154,8 @@ class SessionControllerSpec extends ControllerSpec {
 
     "return a NotFound" when {
       "when no session can be found" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockGetKey(sessionExists = false, keyExists = false)
 
         runActionWithAuth(testController.getEntry(testSessionId, Some("testKey")), getEntryRequest, Some(testSession)) { result =>
@@ -141,12 +163,14 @@ class SessionControllerSpec extends ControllerSpec {
           evaluateJsonResponse(
             GET,
             NOT_FOUND,
-            JsString(s"No session found for session $testSessionId")
+            JsString(s"No session found for sessionId $testSessionId")
           )(notError = false)(contentAsJson(result))
         }
       }
 
       "when no session can be found and no key is specified" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockGetServiceSession(session = None)
 
         runActionWithAuth(testController.getEntry(testSessionId, None), getEntryRequest, Some(testSession)) { result =>
@@ -154,7 +178,7 @@ class SessionControllerSpec extends ControllerSpec {
           evaluateJsonResponse(
             GET,
             NOT_FOUND,
-            JsString(s"No session found for session $testSessionId")
+            JsString(s"No session found for sessionId $testSessionId")
           )(notError = false)(contentAsJson(result))
         }
       }
@@ -176,6 +200,8 @@ class SessionControllerSpec extends ControllerSpec {
   "updateSession" should {
     "return an ok" when {
       "the session has been updated" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockUpdateDataKey(false)
 
         runActionWithAuthStringBody(testController.updateSession(testSessionId), updateSessionRequest, Some(testSession)) { result =>
@@ -186,6 +212,8 @@ class SessionControllerSpec extends ControllerSpec {
 
     "return an internal server error" when {
       "there was a problem updating the session" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockUpdateDataKey(true)
 
         runActionWithAuthStringBody(testController.updateSession(testSessionId), updateSessionRequest, Some(testSession)) { result =>
@@ -204,6 +232,8 @@ class SessionControllerSpec extends ControllerSpec {
 
     "return an ok" when {
       "the given session has been destroyed" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockDestroySessionRecord(true)
 
         runActionWithAuth(testController.destroy(testSessionId), destroySessionRequest, Some(testSession)) { result =>
@@ -214,6 +244,8 @@ class SessionControllerSpec extends ControllerSpec {
 
     "return an internal server error" when {
       "there was a problem destroying the session" in {
+        mockGetState(feature = Feature(Features.applicationVerification, state = false))
+
         mockDestroySessionRecord(false)
 
         runActionWithAuth(testController.destroy(testSessionId), destroySessionRequest, Some(testSession)) { result =>

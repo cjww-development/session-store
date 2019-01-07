@@ -26,16 +26,20 @@ import org.scalatest.Assertion
 import play.api.http.HttpVerbs
 import play.api.libs.json.JsValue
 import play.api.libs.ws.WSRequest
+import play.api.test.FakeRequest
 import repositories.SessionRepository
 
 trait IntegrationSpec extends IntegrationTestSpec with TestDataGenerator with IntegrationApplication with HttpVerbs {
+
+  implicit val req = FakeRequest()
 
   override val currentAppBaseUrl = "session-store"
 
   override val appConfig = Map(
     "repositories.SessionRepositoryImpl.database"   -> "test-session-db",
     "repositories.SessionRepositoryImpl.collection" -> "test-session-collection",
-    "jobs.session-cleaner.enabled"                  -> false
+    "jobs.session-cleaner.enabled"                  -> false,
+    "features.app-verification"                     -> "true"
   )
 
   def client(url: String): WSRequest = ws.url(url)
@@ -52,7 +56,7 @@ trait IntegrationSpec extends IntegrationTestSpec with TestDataGenerator with In
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    await(sessionRepo.cacheData(sessionId))
+    await(sessionRepo.cacheData(sessionId)(implicitly, FakeRequest()))
   }
 
   override protected def afterEach(): Unit = {

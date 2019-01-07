@@ -18,6 +18,7 @@
 package repositories
 
 import com.cjwwdev.logging.Logging
+import com.cjwwdev.logging.output.Logger
 import com.cjwwdev.mongo.DatabaseRepository
 import com.cjwwdev.mongo.connection.ConnectionSettings
 import com.cjwwdev.mongo.responses._
@@ -25,16 +26,16 @@ import javax.inject.Inject
 import models.{Session, SessionTimestamps}
 import play.api.Configuration
 import play.api.libs.json.{JsValue, OFormat}
+import play.api.mvc.Request
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONDocument
 import reactivemongo.play.json._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext => ExC}
 
 class DefaultSessionRepository @Inject()(val config: Configuration) extends SessionRepository with ConnectionSettings
 
-trait SessionRepository extends DatabaseRepository with Logging {
+trait SessionRepository extends DatabaseRepository with Logger with Logging {
 
   override def indexes: Seq[Index] = Seq(
     Index(
@@ -62,62 +63,76 @@ trait SessionRepository extends DatabaseRepository with Logging {
     modifiedDetails = SessionTimestamps(Session.getDateTime, Session.getDateTime)
   )
 
-  def cacheData(sessionId : String): Future[MongoCreateResponse] = {
+  def cacheData(sessionId : String)(implicit ec: ExC, req: Request[_]): Future[MongoCreateResponse] = {
     for {
       col <- collection
       res <- col.insert(buildNewSession(sessionId))
     } yield if(res.ok) {
-      logger.info(s"[cacheData] : Data was successfully created in ${col.name} for sessionId $sessionId")
+      LogAt.info(s"[cacheData] : Data was successfully created in ${col.name} for sessionId $sessionId")
       MongoSuccessCreate
     } else {
-      logger.error(s"[cacheData] : There was a problem inserting data into ${col.name} for sessionId $sessionId")
+      LogAt.error(s"[cacheData] : There was a problem inserting data into ${col.name} for sessionId $sessionId")
       MongoFailedCreate
     }
   }
 
-  def getSession(sessionId: String)(implicit format: OFormat[Session]): Future[Option[Session]] = {
+  def getSession(sessionId: String)(implicit ec: ExC): Future[Option[Session]] = {
     for {
       col <- collection
       res <- col.find(sessionIdSelector(sessionId)).one[Session]
     } yield res
   }
 
-  def renewSession(sessionId: String)(implicit format: OFormat[Session]): Future[MongoUpdatedResponse] = {
+  def renewSession(sessionId: String)(implicit ec: ExC, req: Request[_]): Future[MongoUpdatedResponse] = {
     for {
       col <- collection
       res <- col.update(sessionIdSelector(sessionId), BSONDocument(
         "$set" -> BSONDocument("modifiedDetails.lastModified" -> BSONDocument("$date" -> Session.getDateTime.getMillis)))
       )
     } yield if (res.ok) {
-      logger.info(s"[renewSession] : Successfully renewed session for session id $sessionId")
+      LogAt.info(s"[renewSession] : Successfully renewed session for session id $sessionId")
       MongoSuccessUpdate
     } else {
-      logger.error(s"[renewSession] : There was a problem renewing session for session id $sessionId")
+      LogAt.error(s"[renewSession] : There was a problem renewing session for session id $sessionId")
       MongoFailedUpdate
     }
   }
 
-  def getSessions(implicit format: OFormat[Session]): Future[List[Session]] = {
+  def getSessions(implicit ec: ExC): Future[List[Session]] = {
     for {
       col <- collection
       res <- col.find(BSONDocument()).cursor[Session]().collect[List]()
     } yield res
   }
 
-  def updateSession(sessionId: String, key: String, data: String)(implicit format: OFormat[Session]): Future[(String, String)] = {
+  def updateSession(sessionId: String, key: String, data: String)
+                   (implicit ec: ExC, req: Request[_]): Future[(String, String)] = {
     for {
       col <- collection
       res <- col.update(sessionIdSelector(sessionId), buildUpdateDocument(key, data))
     } yield if(res.ok) {
-      logger.info(s"[updateSession] : Successfully updated session for session id $sessionId")
+      LogAt.info(s"[updateSession] : Successfully updated session for session id $sessionId")
       key -> MongoSuccessUpdate.toString
     } else {
-      logger.error(s"[updateSession] : There was a problem updating session for session id $sessionId")
+      LogAt.error(s"[updateSession] : There was a problem updating session for session id $sessionId")
       key -> MongoFailedUpdate.toString
     }
   }
 
-  def removeSession(sessionId: String): Future[MongoDeleteResponse] = {
+  def removeSession(sessionId: String)(implicit ec: ExC, req: Request[_]): Future[MongoDeleteResponse] = {
+    for {
+      col <- collection
+      res <- col.remove(sessionIdSelector(sessionId))
+    } yield if(res.ok) {
+      LogAt.info(s"[removeSession] : Successfully removed session $sessionId")
+      MongoSuccessDelete
+    } else {
+      LogAt.error(s"[removeSession] : There was a problem deleting session $sessionId")
+      MongoFailedDelete
+    }
+  }
+
+  def cleanSession(sessionId: String)(implicit ec: ExC): Future[MongoDeleteResponse] = {
     for {
       col <- collection
       res <- col.remove(sessionIdSelector(sessionId))
@@ -130,7 +145,7 @@ trait SessionRepository extends DatabaseRepository with Logging {
     }
   }
 
-  def validateSession(sessionId: String): Future[Boolean] = {
+  def validateSession(sessionId: String)(implicit ec: ExC): Future[Boolean] = {
     for {
       col     <- collection
       session <- col.find[BSONDocument, BSONDocument](BSONDocument("sessionId" -> sessionId), BSONDocument("sessionId" -> 1, "_id" -> 0)).one[JsValue]

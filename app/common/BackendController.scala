@@ -18,8 +18,10 @@
 package common
 
 import com.cjwwdev.auth.backend.BaseAuth
+import com.cjwwdev.featuremanagement.services.FeatureService
 import com.cjwwdev.http.headers.HttpHeaders
 import com.cjwwdev.identifiers.IdentifierValidation
+import com.cjwwdev.logging.output.Logger
 import com.cjwwdev.request.RequestParsers
 import com.cjwwdev.responses.ApiResponse
 import models.Session
@@ -28,11 +30,29 @@ import play.api.libs.json._
 import play.api.mvc._
 import repositories.SessionRepository
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-trait BackendController extends BaseController with RequestParsers with IdentifierValidation with BaseAuth with HttpHeaders with ApiResponse {
+trait BackendController
+  extends BaseController
+    with RequestParsers
+    with IdentifierValidation
+    with BaseAuth
+    with HttpHeaders
+    with ApiResponse
+    with Logger {
+
+  implicit val ec: ExecutionContext
+
   val sessionRepository: SessionRepository
+  val featureService: FeatureService
+
+  override protected def applicationVerification(f: => Future[Result])(implicit ec: ExecutionContext, request: Request[_]): Future[Result] = {
+    if(featureService.getState(Features.applicationVerification).state) {
+      super.applicationVerification(f)
+    } else {
+      f
+    }
+  }
 
   protected def validateSession(id: String)(continue: Session => Future[Result])(implicit format: OFormat[Session], request: Request[_]): Future[Result] = {
     validateAs(SESSION, id) {
@@ -47,24 +67,22 @@ trait BackendController extends BaseController with RequestParsers with Identifi
   }
 
   private def logWithForbidden(sessionId: String, msg: String)(implicit request: Request[_]): Future[Result] = {
-    logger.warn(msg)
+    LogAt.warn(msg)
     withFutureJsonResponseBody(FORBIDDEN, msg) { json =>
-      Future(Forbidden(json))
+      Future.successful(Forbidden(json))
     }
   }
 
   private def destroySession(sessionId: String)(implicit request: Request[_]): Future[Result] = {
-    logger.warn("[validateSession]: Session has timed out, action forbidden")
+    LogAt.warn("[validateSession]: Session has timed out, action forbidden")
     sessionRepository.removeSession(sessionId).flatMap { _ =>
       withFutureJsonResponseBody(FORBIDDEN, s"Session $sessionId has timed out action forbidden") { json =>
-        Future(Forbidden(json))
+        Future.successful(Forbidden(json))
       }
     }
   }
 
   private val validateTimestamps: DateTime => Boolean = lastModified => !(new Interval(lastModified, DateTime.now).toDuration.getStandardHours >= 1)
-
-  val NoContentWithBody: JsValue => Result = msg => new Status(NO_CONTENT)(msg)
 
   val mapReads: Reads[Map[String, String]] = Reads[Map[String, String]](json => JsSuccess(json.as[Map[String, String]]))
 

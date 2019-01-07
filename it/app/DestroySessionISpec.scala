@@ -22,6 +22,7 @@ import com.cjwwdev.implicits.ImplicitDataSecurity._
 import utils.IntegrationSpec
 
 class DestroySessionISpec extends IntegrationSpec {
+
   s"/session/$sessionId/destroy" should {
     "return an OK" when {
       "the session has been removed" in {
@@ -46,16 +47,6 @@ class DestroySessionISpec extends IntegrationSpec {
           .withHttpHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", Some(sessionId)).encrypt,
             CONTENT_TYPE   -> TEXT
-          ).delete()
-
-        val result = await(request)
-        result.status mustBe FORBIDDEN
-      }
-
-      "the request is not authorised" in {
-        val request = client(s"$testAppUrl/session/$sessionId")
-          .withHttpHeaders(
-            CONTENT_TYPE -> TEXT
           ).delete()
 
         val result = await(request)

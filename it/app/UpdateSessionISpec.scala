@@ -23,6 +23,7 @@ import play.api.libs.json.Json
 import utils.IntegrationSpec
 
 class UpdateSessionISpec extends IntegrationSpec {
+
   s"/session/$sessionId" should {
     "return an Ok" when {
       "the session has been updated" in {
@@ -52,23 +53,6 @@ class UpdateSessionISpec extends IntegrationSpec {
         val request = client(s"$testAppUrl/session/$sessionId")
           .withHttpHeaders(
             "cjww-headers" -> HeaderPackage("abda73f4-9d52-4bb8-b20d-b5fffd0cc130", Some(sessionId)).encrypt,
-            CONTENT_TYPE -> TEXT
-          )
-          .patch(Json.parse(
-            """
-              |{
-              |   "testKey" : "testData"
-              |}
-            """.stripMargin
-          ))
-
-        val result = await(request)
-        result.status mustBe FORBIDDEN
-      }
-
-      "the request is not authorised" in {
-        val request = client(s"$testAppUrl/session/$sessionId")
-          .withHttpHeaders(
             CONTENT_TYPE -> TEXT
           )
           .patch(Json.parse(

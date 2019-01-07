@@ -18,53 +18,55 @@
 package services
 
 import com.cjwwdev.logging.Logging
+import com.cjwwdev.logging.output.Logger
 import com.cjwwdev.mongo.responses._
-import common.MissingSessionException
+import common.{NoMatchingSession, Response}
 import javax.inject.Inject
 import models.Session
-import play.api.libs.json.OFormat
+import play.api.mvc.Request
 import repositories.SessionRepository
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext => ExC}
 
 class DefaultSessionService @Inject()(val sessionRepo: SessionRepository) extends SessionService
 
-trait SessionService extends Logging {
+trait SessionService extends Logger with Logging {
   val sessionRepo: SessionRepository
 
-  def cacheData(sessionId: String): Future[Option[Session]] = {
+  def cacheData(sessionId: String)(implicit req: Request[_], ec: ExC): Future[Option[Session]] = {
     for {
       _       <- sessionRepo.cacheData(sessionId)
       session <- sessionRepo.getSession(sessionId)
     } yield session
   }
 
-  def getByKey(sessionId : String, key : String)(implicit format : OFormat[Session]) : Future[Option[String]] = {
+  def getByKey(sessionId : String, key : String)(implicit req: Request[_], ec: ExC): Future[Either[Option[String], Response]] = {
     for {
       session <- sessionRepo.getSession(sessionId)
       _       <- sessionRepo.renewSession(sessionId)
-    } yield session.fold(throw new MissingSessionException(s"No session for sessionId $sessionId"))(_.data.get(key))
-  }
-
-  def getSession(sessionId: String): Future[Option[Session]] = {
-    sessionRepo.getSession(sessionId)
-  }
-
-  def updateDataKey(sessionId : String, updateSet: Map[String, String]): Future[Seq[(String, String)]] = {
-    Future.sequence(
-      updateSet.toList.map(update => sessionRepo.updateSession(sessionId, update._1, update._2))
+    } yield session.fold[Either[Option[String], Response]](Right(NoMatchingSession))(
+      session => Left(session.data.get(key))
     )
   }
 
-  def destroySessionRecord(sessionId : String): Future[Boolean] = {
+  def getSession(sessionId: String)(implicit req: Request[_], ec: ExC): Future[Option[Session]] = {
+    sessionRepo.getSession(sessionId)
+  }
+
+  def updateDataKey(sessionId : String, updateSet: Map[String, String])(implicit req: Request[_], ec: ExC): Future[Seq[(String, String)]] = {
+    Future.sequence(updateSet.toList.map {
+      case (key, value) => sessionRepo.updateSession(sessionId, key, value)
+    })
+  }
+
+  def destroySessionRecord(sessionId : String)(implicit req: Request[_], ec: ExC): Future[Boolean] = {
     sessionRepo.removeSession(sessionId) map {
       case MongoSuccessDelete => true
       case MongoFailedDelete  => false
     }
   }
 
-  def cleanseSessions: Future[MongoDeleteResponse] = {
+  def cleanseSessions(implicit ec: ExC): Future[MongoDeleteResponse] = {
     for {
       toRemove <- sessionRepo.getSessions map { list =>
         val sessionsToRemove = list.filter(_.hasTimedOut)
@@ -72,7 +74,7 @@ trait SessionService extends Logging {
         logger.info(s"Sessions to remove ${sessionsToRemove.size}")
         sessionsToRemove
       }
-      _ = toRemove.foreach(x => sessionRepo.removeSession(x.sessionId))
+      _ <- Future.traverse(toRemove)(session => sessionRepo.cleanSession(session.sessionId))
     } yield MongoSuccessDelete
   }
 }

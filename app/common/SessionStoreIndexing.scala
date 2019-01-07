@@ -21,7 +21,10 @@ import com.cjwwdev.mongo.indexes.RepositoryIndexer
 import javax.inject.Inject
 import repositories.SessionRepository
 
-class SessionStoreIndexing @Inject()(sessionRepository: SessionRepository) extends RepositoryIndexer {
+import scala.concurrent.ExecutionContext
+
+class SessionStoreIndexing @Inject()(sessionRepository: SessionRepository,
+                                     implicit val ec: ExecutionContext) extends RepositoryIndexer {
   override val repositories = Seq(sessionRepository)
   runIndexing
 }

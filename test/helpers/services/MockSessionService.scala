@@ -18,7 +18,7 @@
 package helpers.services
 
 import com.cjwwdev.mongo.responses._
-import common.{MissingSessionException, SessionKeyNotFoundException}
+import common.{NoMatchingSession, Response}
 import models.Session
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
@@ -28,7 +28,6 @@ import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import services.SessionService
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait MockSessionService extends BeforeAndAfterEach with MockitoSugar {
@@ -42,46 +41,48 @@ trait MockSessionService extends BeforeAndAfterEach with MockitoSugar {
   }
 
   def mockCacheData(session: Option[Session], exception: Option[Exception] = None): OngoingStubbing[Future[Option[Session]]] = {
-    when(mockSessionService.cacheData(any()))
+    when(mockSessionService.cacheData(any())(any(), any()))
       .thenReturn(
         if(exception.isDefined) {
           Future.failed(exception.get)
         } else {
-          Future(session)
+          Future.successful(session)
         }
       )
   }
 
-  def mockGetKey(sessionExists: Boolean, keyExists: Boolean): OngoingStubbing[Future[Option[String]]] = {
-    when(mockSessionService.getByKey(any(), any())(any()))
+  def mockGetKey(sessionExists: Boolean, keyExists: Boolean): OngoingStubbing[Future[Either[Option[String], Response]]] = {
+    when(mockSessionService.getByKey(any(), any())(any(), any()))
       .thenReturn(if(sessionExists) {
         if(keyExists) {
-          Future(Some("testData"))
+          Future.successful(Left(Some("testData")))
         } else {
-          Future(None)
+          Future.successful(Left(None))
         }
       } else {
-        Future.failed(new MissingSessionException("No Session"))
+        Future.successful(Right(NoMatchingSession))
       })
   }
 
   def mockGetServiceSession(session: Option[Session]): OngoingStubbing[Future[Option[Session]]] = {
-    when(mockSessionService.getSession(any()))
-      .thenReturn(Future(session))
+    when(mockSessionService.getSession(any())(any(), any()))
+      .thenReturn(Future.successful(session))
   }
 
   def mockUpdateDataKey(updateFailed: Boolean): OngoingStubbing[Future[Seq[(String, String)]]] = {
-    when(mockSessionService.updateDataKey(any(), any()))
-      .thenReturn(Future(if(updateFailed) Seq("key" -> MongoFailedUpdate.toString) else Seq("key" -> MongoSuccessUpdate.toString)))
+    when(mockSessionService.updateDataKey(any(), any())(any(), any()))
+      .thenReturn(
+        Future.successful(if(updateFailed) Seq("key" -> MongoFailedUpdate.toString) else Seq("key" -> MongoSuccessUpdate.toString))
+      )
   }
 
   def mockDestroySessionRecord(destroyed: Boolean): OngoingStubbing[Future[Boolean]] = {
-    when(mockSessionService.destroySessionRecord(any()))
-      .thenReturn(Future(destroyed))
+    when(mockSessionService.destroySessionRecord(any())(any(), any()))
+      .thenReturn(Future.successful(destroyed))
   }
 
   def mockCleanseSessions: OngoingStubbing[Future[MongoDeleteResponse]] = {
-    when(mockSessionService.cleanseSessions)
-      .thenReturn(Future(MongoSuccessDelete))
+    when(mockSessionService.cleanseSessions(any()))
+      .thenReturn(Future.successful(MongoSuccessDelete))
   }
 }

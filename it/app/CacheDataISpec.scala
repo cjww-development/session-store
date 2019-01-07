@@ -22,6 +22,7 @@ import com.cjwwdev.implicits.ImplicitDataSecurity._
 import utils.IntegrationSpec
 
 class CacheDataISpec extends IntegrationSpec {
+
   s"/session/$sessionId/ (initialise)" should {
     "return a created" when {
       "a new session has been created in session-store" in {
@@ -36,13 +37,6 @@ class CacheDataISpec extends IntegrationSpec {
 
         val userInfo = await(sessionRepo.getSession(sessionId))
         userInfo.get.data mustBe Map.empty[String, String]
-      }
-    }
-
-    "return a forbidden" when {
-      "the request is not authorised" in {
-        val result = await(client(s"$testAppUrl/session/$sessionId").post(""))
-        result.status mustBe FORBIDDEN
       }
     }
   }
