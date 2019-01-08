@@ -38,7 +38,7 @@ private object CompileDependencies {
     "com.cjww-dev.libs" % "service-health_2.12"        % serviceHealthVersion,
     "com.cjww-dev.libs" % "feature-management_2.12"    % featureManagementVersion,
     "com.cjww-dev.libs" % "logging-utils_2.12"         % loggingUtilsVersion,
-    "com.cjww-dev.libs" % "metrics-reporter_2.12"      % metricsVersion,
+    "com.cjww-dev.libs" % "metrics-reporter_2.12"      % metricsVersion
   )
 
   def apply(): Seq[ModuleID] = appDependencies
