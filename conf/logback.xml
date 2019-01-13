@@ -3,7 +3,7 @@
     <conversionRule conversionWord="coloredLevel" converterClass="com.cjwwdev.logging.converters.ColouredLogLevelConversion" />
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>${application.home:-.}/logs/application-json.log</file>
+        <file>${user.home}/logs/application-json.log</file>
         <encoder class="com.cjwwdev.logging.encoders.JsonLoggingEncoding" />
     </appender>
 
