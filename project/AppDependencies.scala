@@ -28,7 +28,7 @@ private object CompileDependencies {
   private val appUtilsVersion          = "4.6.1"
   private val serviceHealthVersion     = "0.3.1"
   private val featureManagementVersion = "1.5.0"
-  private val loggingUtilsVersion      = "1.2.7"
+  private val loggingUtilsVersion      = "1.3.1"
   private val metricsVersion           = "1.0.3"
 
   private val appDependencies: Seq[ModuleID] = Seq(
