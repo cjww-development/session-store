@@ -17,6 +17,7 @@
 
 import com.heroku.sbt.HerokuPlugin.autoImport.herokuAppName
 import com.typesafe.config.ConfigFactory
+import com.typesafe.sbt.packager.docker.Cmd
 import sbt.Keys.{organization, version}
 import scoverage.ScoverageKeys
 
@@ -59,5 +60,14 @@ lazy val microservice = Project(appName, file("."))
     fork                       in Test            :=  true,
     testForkedParallel         in Test            :=  true,
     parallelExecution          in Test            :=  true,
-    logBuffered                in Test            :=  false
+    logBuffered                in Test            :=  false,
+    dockerRepository                              :=  Some("cjwwdevelopment"),
+    dockerCommands                                :=  Seq(
+      Cmd("FROM", "openjdk:8u181-jdk"),
+      Cmd("WORKDIR", "/opt/docker"),
+      Cmd("ADD", "--chown=daemon:daemon opt /opt"),
+      Cmd("USER", "daemon"),
+      Cmd("ENTRYPOINT", """["/opt/docker/bin/session-store"]"""),
+      Cmd("CMD", """[]""")
+    )
   )
