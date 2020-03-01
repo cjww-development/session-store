@@ -16,36 +16,39 @@
 
 package repositories
 
-import com.cjwwdev.logging.Logging
-import com.cjwwdev.logging.output.Logger
 import com.cjwwdev.mongo.DatabaseRepository
 import com.cjwwdev.mongo.connection.ConnectionSettings
 import com.cjwwdev.mongo.responses._
+import com.typesafe.config.Config
 import javax.inject.Inject
 import models.{Session, SessionTimestamps}
+import org.bson.codecs.configuration.CodecRegistry
+import org.mongodb.scala.model.Filters._
+import org.mongodb.scala.model.Updates._
+import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
+import org.slf4j.{Logger, LoggerFactory}
 import play.api.Configuration
-import play.api.libs.json.{JsValue, OFormat}
+import play.api.libs.json.JsValue
 import play.api.mvc.Request
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.BSONDocument
-import reactivemongo.play.json._
 
 import scala.concurrent.{Future, ExecutionContext => ExC}
 
-class DefaultSessionRepository @Inject()(val config: Configuration) extends SessionRepository with ConnectionSettings
+class DefaultSessionRepository @Inject()(val configuration: Configuration) extends SessionRepository with ConnectionSettings {
+  override val config: Config = configuration.underlying
+}
 
-trait SessionRepository extends DatabaseRepository with Logger with Logging {
+trait SessionRepository extends DatabaseRepository {
 
-  override def indexes: Seq[Index] = Seq(
-    Index(
-      key    = Seq("sessionId" -> IndexType.Ascending),
-      name   = Some("SessionId"),
-      unique = true,
-      sparse = false
-    )
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
+
+  override def indexes: Seq[IndexModel] = Seq(
+    IndexModel(Indexes.ascending("sessionId"), IndexOptions().background(false).unique(true)),
   )
 
-  private def sessionIdSelector(sessionId: String) = BSONDocument("sessionId" -> sessionId)
+  private def buildUpdateDocument(key: String, data: String) = Seq(
+    set(s"data.$key", data),
+    set()
+  )
 
   private def buildUpdateDocument(key: String, data: String) = BSONDocument(
     "$set" -> BSONDocument(
@@ -62,27 +65,24 @@ trait SessionRepository extends DatabaseRepository with Logger with Logging {
     modifiedDetails = SessionTimestamps(Session.getDateTime, Session.getDateTime)
   )
 
-  def cacheData(sessionId : String)(implicit ec: ExC, req: Request[_]): Future[MongoCreateResponse] = {
-    for {
-      col <- collection
-      res <- col.insert(buildNewSession(sessionId))
-    } yield if(res.ok) {
-      LogAt.info(s"[cacheData] : Data was successfully created in ${col.name} for sessionId $sessionId")
+  def cacheData(sessionId : String)(implicit codec: CodecRegistry, ec: ExC): Future[MongoCreateResponse] = {
+    collection[Session].insertOne(buildNewSession(sessionId)).toFuture().map { _ =>
+      logger.info(s"[cacheData] : Data was successfully created in $collectionName for sessionId $sessionId")
       MongoSuccessCreate
-    } else {
-      LogAt.error(s"[cacheData] : There was a problem inserting data into ${col.name} for sessionId $sessionId")
-      MongoFailedCreate
+    } recover {
+      case _ =>
+        logger.error(s"[cacheData] : There was a problem inserting data into $collectionName for sessionId $sessionId")
+        MongoFailedCreate
     }
   }
 
-  def getSession(sessionId: String)(implicit ec: ExC): Future[Option[Session]] = {
-    for {
-      col <- collection
-      res <- col.find(sessionIdSelector(sessionId)).one[Session]
-    } yield res
+  def getSession(sessionId: String)(implicit codec: CodecRegistry, ec: ExC): Future[Option[Session]] = {
+    collection[Session].find[Session](equal("sessionId", sessionId)).first().toFutureOption()
   }
 
   def renewSession(sessionId: String)(implicit ec: ExC, req: Request[_]): Future[MongoUpdatedResponse] = {
+    collection[Session].
+
     for {
       col <- collection
       res <- col.update(sessionIdSelector(sessionId), BSONDocument(

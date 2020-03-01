@@ -1,5 +1,5 @@
 /*
- *  Copyright 2018 CJWW Development
+ *  Copyright 2020 CJWW Development
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -12,14 +12,11 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
  */
 
-import com.heroku.sbt.HerokuPlugin.autoImport.herokuAppName
 import com.typesafe.config.ConfigFactory
 import com.typesafe.sbt.packager.docker.Cmd
 import sbt.Keys.{organization, version}
-import scoverage.ScoverageKeys
 
 import scala.util.{Failure, Success, Try}
 
@@ -30,26 +27,28 @@ val btVersion: String = Try(ConfigFactory.load.getString("version")) match {
   case Failure(_)   => "0.1.0"
 }
 
-lazy val scoverageSettings = Seq(
-  ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;/.data/..*;views.*;models.*;common.*;.*(AuthService|BuildInfo|Routes).*",
-  ScoverageKeys.coverageMinimum          := 80,
-  ScoverageKeys.coverageFailOnMinimum    := false,
-  ScoverageKeys.coverageHighlighting     := true
+lazy val mainDeps: Seq[ModuleID] = Seq(
+  "com.cjww-dev.libs" % "mongo-connector_2.13" % "0.2.0",
 )
+
+lazy val testDeps: Seq[ModuleID] = Seq(
+  "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
+  "org.mockito"            %  "mockito-core"       % "3.3.0" % Test
+)
+
+lazy val deps = mainDeps ++ testDeps
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(PlayScala)
-  .settings(scoverageSettings : _*)
   .configs(IntegrationTest)
   .settings(PlayKeys.playDefaultPort := 8400)
   .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
   .settings(
     version                                       :=  btVersion,
-    scalaVersion                                  :=  "2.12.8",
+    scalaVersion                                  :=  "2.13.1",
     organization                                  :=  "com.cjww-dev.apps",
-    resolvers                                     +=  "cjww-dev" at "http://dl.bintray.com/cjww-development/releases",
-    libraryDependencies                           ++= AppDependencies(),
-    herokuAppName              in Compile         :=  "cjww-session-store",
+    resolvers                                     +=  "cjww-dev" at "https://dl.bintray.com/cjww-development/releases",
+    libraryDependencies                           ++= mainDeps,
     bintrayOrganization                           :=  Some("cjww-development"),
     bintrayReleaseOnPublish    in ThisBuild       :=  true,
     bintrayRepository                             :=  "releases",
